@@ -38,10 +38,10 @@ sudo systemctl restart ssh
 echo "y" | sudo ufw reset
 
 # Set ports
-sudo ufw allow "$SSH_PORT"/tcp       # SSH用 (新しいポート)
-sudo ufw allow http/tcp              # HTTP用
-sudo ufw allow https/tcp             # HTTPS用
-sudo ufw enable                      # UFWを有効化
+sudo ufw allow "$SSH_PORT"/tcp
+sudo ufw allow http/tcp
+sudo ufw allow https/tcp
+sudo ufw enable
 
 # Install neovim
 sudo apt install -y neovim
