@@ -3,7 +3,6 @@
 USER_NAME=""             
 PASSWORD=""
 SSH_PORT="22"            
-KEY_PASSPHRASE=""       
 
 # Update system
 sudo apt update -y
@@ -52,17 +51,5 @@ USER_HOME=$(eval echo "~$USER_NAME")
 # Create ".ssh" directory as user
 sudo mkdir -p "$USER_HOME/.ssh"
 sudo chown "$USER_NAME:$USER_NAME" "$USER_HOME/.ssh"
-sudo chmod 700 "$USER_HOME/.ssh"
 
-# Generate SSH keys
-sudo -u "$USER_NAME" ssh-keygen -t ed25519 -b 4096 -f "$USER_HOME/.ssh/id_rsa" -N "$KEY_PASSPHRASE" -C "$USER_NAME@server"
 
-# Copy public kes to "authorized_keys" file
-sudo -u "$USER_NAME" cat "$USER_HOME/.ssh/id_rsa.pub" >> "$USER_HOME/.ssh/authorized_keys"
-sudo chmod 600 "$USER_HOME/.ssh/authorized_keys"
-
-# Get private key's content
-PRIVATE_KEY=$(sudo -u "$USER_NAME" cat "$USER_HOME/.ssh/id_rsa")
-
-# Show private key
-echo "$PRIVATE_KEY"
