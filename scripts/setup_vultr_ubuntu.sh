@@ -1,8 +1,13 @@
 #!/bin/bash
 
-USER_NAME=""             
-PASSWORD=""
-SSH_PORT="22"            
+echo "New Username: "
+read USER_NAME
+
+echo "Password: "
+read PASSWORDJ
+
+echo "SSH Port: "
+read SSH_PORT
 
 # Update system
 sudo apt update -y
@@ -22,6 +27,10 @@ sudo usermod -aG wheel "$USER_NAME"
 
 # Allow "wheel" group to run sudo command without password
 echo "%wheel ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/wheel
+
+# Use default sshd_config
+mv /etc/ssh/sshd_config /etc/ssh/sshd_config.old
+cp /usr/share/openssh/sshd_config /etc/ssh/sshd_config
 
 # Edit "sshd_config" file
 sudo sed -i "s/#Port 22/Port $SSH_PORT/" /etc/ssh/sshd_config
@@ -51,5 +60,3 @@ USER_HOME=$(eval echo "~$USER_NAME")
 # Create ".ssh" directory as user
 sudo mkdir -p "$USER_HOME/.ssh"
 sudo chown "$USER_NAME:$USER_NAME" "$USER_HOME/.ssh"
-
-
