@@ -37,7 +37,7 @@ sudo sed -i "s/#Port 22/Port $SSH_PORT/" /etc/ssh/sshd_config
 sudo sed -i "s/#PermitRootLogin prohibit-password/PermitRootLogin no/" /etc/ssh/sshd_config
 sudo sed -i "s/#PubkeyAuthentication yes/PubkeyAuthentication yes/" /etc/ssh/sshd_config
 sudo sed -i "s/#PasswordAuthentication yes/PasswordAuthentication no/" /etc/ssh/sshd_config
-echo "\nChallengeResponseAuthentication no" | sudo tee -a /etc/ssh/sshd_config
+{ echo ""; echo "ChallengeResponseAuthentication no"; } | sudo tee -a /etc/ssh/sshd_config
 
 # Restart ssh services
 sudo systemctl restart sshd
