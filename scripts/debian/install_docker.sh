@@ -22,3 +22,7 @@ sudo systemctl enable docker
 
 # Run docker command without sudo
 sudo usermod -aG docker $USER
+
+# Docker compose
+sudo apt-get update
+sudo apt-get install docker-compose-plugin
