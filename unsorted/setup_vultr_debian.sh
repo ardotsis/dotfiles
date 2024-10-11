@@ -1,13 +1,8 @@
 #!/bin/bash
 
-echo "New Username: "
-read USER_NAME
-
-echo "Password: "
-read PASSWORD
-
-echo "SSH Port: "
-read SSH_PORT
+read -p "New username: " USER_NAME
+read -p "Password: " PASSWORD
+read -p "SSH port: " SSH_PORT
 
 # Update system
 sudo apt update -y
@@ -37,6 +32,7 @@ sudo sed -i "s/#Port 22/Port $SSH_PORT/" /etc/ssh/sshd_config
 sudo sed -i "s/#PermitRootLogin prohibit-password/PermitRootLogin no/" /etc/ssh/sshd_config
 sudo sed -i "s/#PubkeyAuthentication yes/PubkeyAuthentication yes/" /etc/ssh/sshd_config
 sudo sed -i "s/#PasswordAuthentication yes/PasswordAuthentication no/" /etc/ssh/sshd_config
+
 sudo rm /etc/ssh/sshd_config.d/*.conf
 
 # Restart ssh services
