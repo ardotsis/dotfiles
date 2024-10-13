@@ -49,8 +49,24 @@ USER_HOME=$(eval echo "~$USER_NAME")
 # Create ".ssh" directory
 sudo mkdir -p "$USER_HOME/.ssh"
 sudo chown "$USER_NAME:$USER_NAME" "$USER_HOME/.ssh"
+# Create "authorized_keys" file
+sudo -u $USER_NAME touch "$USER_HOME/.ssh/authorized_keys"
 # Change default shell to bash
 chsh -s /bin/bash $USER_NAME
+# Run ssh-agent on login and add key
+echo "
+# Start ssh-agent if not already running
+if [ -z \"\$SSH_AGENT_PID\" ]; then
+    eval \$(ssh-agent -s) > /dev/null
+fi
+
+# Add SSH keys if not already added
+ssh-add -l &>/dev/null
+if [ \$? -ne 0 ]; then
+    ssh-add ~/.ssh/id_rsa  # Replace with your actual key path if different
+fi
+" >> "$USER_HOME/.bashrc"
+
 
 ################# Install applications #################
 sudo apt install -y neovim

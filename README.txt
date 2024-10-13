@@ -1,6 +1,6 @@
 dotfiles
 
-this repository includes many temporary scripts. 
+this repository includes many temporary scripts.
 please do not expect them to work.
 
-thank you <3
+thanks for reading <3
