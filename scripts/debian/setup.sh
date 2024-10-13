@@ -32,7 +32,7 @@ sudo sed -i "s/#PubkeyAuthentication yes/PubkeyAuthentication yes/" /etc/ssh/ssh
 sudo sed -i "s/#PasswordAuthentication yes/PasswordAuthentication no/" /etc/ssh/sshd_config
 # Restart ssh services
 sudo systemctl restart sshd
-sudo systemctl restart ssh  # should i restart ssh service too..? (/・ω・)/
+sudo systemctl restart ssh  # should i restart ssh service too?
 
 ################# UFW configurations #################
 # Reset ufw settings
@@ -66,7 +66,6 @@ if [ \$? -ne 0 ]; then
     ssh-add ~/.ssh/id_rsa  # Replace with your actual key path if different
 fi
 " >> "$USER_HOME/.bashrc"
-
 
 ################# Install applications #################
 sudo apt install -y neovim
