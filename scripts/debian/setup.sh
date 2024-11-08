@@ -53,7 +53,7 @@ sudo chown "$USER_NAME:$USER_NAME" "$USER_HOME/.ssh"
 sudo -u $USER_NAME touch "$USER_HOME/.ssh/authorized_keys"
 # Change default shell to bash
 chsh -s /bin/bash $USER_NAME
-# Run ssh-agent on login and add key
+# Run ssh-agent on login and add key (WILL REMOVE)
 echo "
 # Start ssh-agent if not already running
 if [ -z \"\$SSH_AGENT_PID\" ]; then
@@ -69,3 +69,21 @@ fi
 
 ################# Install applications #################
 sudo apt install -y neovim
+
+################# ZSH (TODO) #################
+# sudo apt install zsh
+# sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+# git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+# source ~/.zshrc
+
+# PLZ COPY THE CONFIG FILE FROM THE VPS
+
+# plugins=(
+#   git
+#   ssh-agent
+#   zsh-autosuggestions
+#   zsh-syntax-highlighting
+# )
+
+# source $ZSH/oh-my-zsh.sh
+# zstyle :omz:plugins:ssh-agent identities github
