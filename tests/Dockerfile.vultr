@@ -1,4 +1,4 @@
 FROM debian:bookworm
-COPY ./src/install.sh /install.sh
+COPY ./src/hosts/vultr/install.sh /install.sh
 RUN ["chmod", "+x", "./install.sh"]
 CMD ["./install.sh", "vultr"]

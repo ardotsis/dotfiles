@@ -1,1 +1,3 @@
-echo "hello from vultr install.sh"
+# !/bin/bash -eu
+
+echo "Vultr host installation"
