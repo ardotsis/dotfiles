@@ -9,3 +9,6 @@ curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/
 
 Available host name
 - vultr
+
+## Todo (me only)
+https://github.com/ardotsis/dotfiles-old
