@@ -1,7 +1,10 @@
-#!usr/bin/env bash
-set -euo pipefail
+#!/bin/bash -eu
 
-HOSTS_REPO="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/src/hosts/"
-AVAILABLE_HOSTS=("arch", "vultr")
-
-curl -fsSL "${RAW_HOSTS_REPO}arch/install.sh" | bash
+case "$1" in
+arch | vultr)
+	curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/src/hosts/$1/install.sh" | bash
+	;;
+*)
+	echo "Unknown hostname: '$1'"
+	;;
+esac
