@@ -1,7 +1,32 @@
 #!/bin/bash -eu
 
-echo "Vultr host installation"
+is_root() {
+	[ "$(id -u)" -eq 0 ]
+}
 
-apt-get update && apt-get upgrade -y
+is_cmd_exist() {
+	if command -v "$1" >/dev/null 2>&1; then
+		return 0
+	else
+		return 1
+	fi
+}
 
-apt-get install git -y
+main() {
+	if ! is_root; then
+		echo "Please run this script as root."
+		exit 1
+	fi
+
+	# Update package manager
+	apt-get update
+	apt-get upgrade -y
+
+	# Install git
+	if ! is_cmd_exist git; then
+		echo "Installing git.."
+		apt-get install git -y
+	fi
+}
+
+main
