@@ -1,5 +1,7 @@
 #!/bin/bash -eu
 
+DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
+
 is_root() {
 	[ "$(id -u)" -eq 0 ]
 }
@@ -10,6 +12,10 @@ is_cmd_exist() {
 	else
 		return 1
 	fi
+}
+
+create_sudo_user() {
+
 }
 
 main() {
@@ -27,6 +33,8 @@ main() {
 		echo "Installing git.."
 		apt-get install git -y
 	fi
+
+	git clone -b main $DOTFILES_REPO
 }
 
 main

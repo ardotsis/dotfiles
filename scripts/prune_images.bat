@@ -1,0 +1,2 @@
+@echo off
+docker image prune -f
