@@ -41,8 +41,8 @@ is_cmd_exist() {
 rm_pkg() {
 	local pkg="$1"
 
-	apt-get remove "$pkg"
-	apt-get purge "$pkg"
+	apt-get -y remove "$pkg"
+	apt-get -y purge "$pkg"
 }
 
 create_user() {
