@@ -38,11 +38,18 @@ is_cmd_exist() {
 	fi
 }
 
+install_pkg() {
+	local pkg="$1"
+
+	apt-get install -y --no-install-recommends "$pkg"
+}
+
 rm_pkg() {
 	local pkg="$1"
 
-	apt-get -y remove "$pkg"
-	apt-get -y purge "$pkg"
+	apt-get remove -y "$pkg"
+	apt-get purge -y "$pkg"
+	apt-get autoremove -y
 }
 
 create_user() {
@@ -114,11 +121,11 @@ main() {
 		systemctl restart sshd
 	fi
 
+	echo
 	printf "%s\n%s\n%s" \
 		"New password for $USERNAME: $password" \
 		"Copy this password and store it securely!" \
 		"SSH port: $ssh_port"
-	echo
 }
 
 main
