@@ -18,12 +18,15 @@ is_cmd_exist() {
 
 case "$1" in
 vultr)
+	echo "Creating new user"
 	sudo useradd -m -s /bin/bash -G sudo $USERNAME
 	if ! is_cmd_exist git; then
-		echo "Installing Git..."
+		echo "Install Git"
 		sudo apt-get update
 		sudo apt-get install -y --no-install-recommends git
 	fi
+	su -c $USERNAME
+	cd "/home/$USERNAME"
 	git clone -b main $REPO
 	;;
 arch)
