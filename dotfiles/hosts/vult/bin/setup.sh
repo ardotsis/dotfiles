@@ -1,12 +1,12 @@
 #!/bin/bash -eu
 DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
 USERNAME="ardotsis"
-IS_DOCKER_ENV=false
+IS_DOCKER_TEST_ENV=false
 
 for arg in "$@"; do
 	case $arg in
 	--docker)
-		IS_DOCKER_ENV=true
+		IS_DOCKER_TEST_ENV=true
 		;;
 	esac
 done
@@ -66,24 +66,8 @@ gen_password() {
 	printf %s "$(tr -dc "A-Za-z0-9!?%=" </dev/urandom | head -c "$length")"
 }
 
-setup_sshd_config() {
-	local ssh_port="$1"
-
-	# Delete unnecessary files
-	mv /etc/ssh/sshd_config.d /etc/ssh/sshd_config.d.bak
-
-	# Backup current file and restore OpenSSH defaults.
-	mv /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
-	cp /usr/share/openssh/sshd_config /etc/ssh/sshd_config
-
-	sed -i "s/#Port 22/Port $ssh_port/" /etc/ssh/sshd_config
-	sed -i "s/#PermitRootLogin prohibit-password/PermitRootLogin no/" /etc/ssh/sshd_config
-	sed -i "s/#PubkeyAuthentication yes/PubkeyAuthentication yes/" /etc/ssh/sshd_config
-	sed -i "s/#PasswordAuthentication yes/PasswordAuthentication no/" /etc/ssh/sshd_config
-}
-
 main() {
-	if $IS_DOCKER_ENV; then
+	if $IS_DOCKER_TEST_ENV; then
 		echo "Run script as Docker environment mode."
 	fi
 
@@ -95,10 +79,14 @@ main() {
 	apt-get update
 	apt-get upgrade -y
 
-	if ! is_cmd_exist git; then
-		show_title "Install Git"
-		apt-get install git -y
-	fi
+	# TODO:
+	#	1- CREATE PACKAGE LIST FOR EACH DISTRIBUTION(apt, yum...)
+	#	2- INSTALL GIT AND CLONE THE REPO IN bootstrap.sh (SO I CAN USE utils.sh)
+
+	# if ! is_cmd_exist git; then
+	# 	show_title "Install Git"
+	# 	apt-get install git -y
+	# fi
 
 	show_title "Create User"
 	password=$(gen_password 32)
@@ -116,7 +104,9 @@ main() {
 	ssh_port=$(shuf -i 1024-65535 -n 1)
 	setup_sshd_config "$ssh_port"
 
-	if ! $IS_DOCKER_ENV; then
+	if $IS_DOCKER_TEST_ENV; then
+		echo "Skip SSH server (sshd) restart."
+	else
 		echo "Restarting sshd.."
 		systemctl restart sshd
 	fi
