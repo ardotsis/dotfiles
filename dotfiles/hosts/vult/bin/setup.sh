@@ -1,6 +1,4 @@
 #!/bin/bash -eu
-DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
-USERNAME="ardotsis"
 IS_DOCKER_TEST_ENV=false
 
 for arg in "$@"; do
@@ -22,10 +20,6 @@ show_title() {
 	printf "#%*s%s%*s#\n" "$padding" "" "$text" "$((padding + extra))" ""
 	printf "#%.0s" $(seq 1 "$width")
 	echo
-}
-
-is_root() {
-	[ "$(id -u)" -eq 0 ]
 }
 
 is_cmd_exist() {
@@ -70,27 +64,6 @@ main() {
 	if $IS_DOCKER_TEST_ENV; then
 		echo "Run script as Docker environment mode."
 	fi
-
-	if ! is_root; then
-		echo "Please run this script as root."
-		exit 1
-	fi
-
-	apt-get update
-	apt-get upgrade -y
-
-	# TODO:
-	#	1- CREATE PACKAGE LIST FOR EACH DISTRIBUTION(apt, yum...)
-	#	2- INSTALL GIT AND CLONE THE REPO IN bootstrap.sh (SO I CAN USE utils.sh)
-
-	# if ! is_cmd_exist git; then
-	# 	show_title "Install Git"
-	# 	apt-get install git -y
-	# fi
-
-	show_title "Create User"
-	password=$(gen_password 32)
-	create_user "$USERNAME" "$password"
 
 	show_title "Uninstall UFW"
 	if is_cmd_exist ufw; then

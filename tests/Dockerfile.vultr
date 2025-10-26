@@ -1,7 +1,7 @@
 FROM debian:bookworm
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y sudo openssh-server
-COPY ./src/hosts/vultr/install.sh /install.sh
-RUN chmod +x ./install.sh
-CMD ["./install.sh", "--docker"]
+    apt-get install -y sudo openssh-server ca-certificates
+COPY ./bootstrap.sh /bootstrap.sh
+RUN chmod +x ./bootstrap.sh
+CMD ["./bootstrap.sh", "vultr"]

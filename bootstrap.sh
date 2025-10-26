@@ -16,18 +16,26 @@ is_cmd_exist() {
 	fi
 }
 
+get_rand_str() {
+	local length="$1"
+
+	printf %s "$(tr -dc "A-Za-z0-9!?%=" </dev/urandom | head -c "$length")"
+}
+
 case "$1" in
 vultr)
 	echo "Creating new user"
-	sudo useradd -m -s /bin/bash -G sudo $USERNAME
+	useradd -m -s /bin/bash -G sudo $USERNAME
+	passwd=$(get_rand_str 32)
+	echo "$USERNAME:$passwd" | sudo chpasswd
 	if ! is_cmd_exist git; then
 		echo "Install Git"
 		sudo apt-get update
 		sudo apt-get install -y --no-install-recommends git
 	fi
-	su -c $USERNAME
 	cd "/home/$USERNAME"
-	git clone -b main $REPO
+	sudo -u "$USERNAME" bash -c "git clone -b main '$REPO'"
+	sudo -u "$USERNAME" bash -c "./dotfiles/hosts/vultr/bin/setup.sh"
 	;;
 arch)
 	echo "btw, i use Arch (WIP)"
