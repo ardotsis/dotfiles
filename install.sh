@@ -88,6 +88,10 @@ create_sudo_user() {
 ##################################################
 #                   Installers                   #
 ##################################################
+do_init_vultr() {
+	echo "do_init_arch - Not implemented yet."
+}
+
 do_setup_vultr() {
 	if is_cmd_exist ufw; then
 		print_header "Uninstall UFW"
@@ -105,16 +109,19 @@ do_setup_vultr() {
 	git clone -b main "$DOTFILES_REPO"
 }
 
-do_setup_arch_usr() {
-	OS="arch"
+do_init_arch() {
+	echo "do_init_arch - Not implemented yet."
+}
 
-	echo "arch - Not implemented yet."
+do_setup_arch() {
+	echo "do_setup_arch - Not implemented yet."
 }
 
 main() {
 	is_setup=false
 	host=""
 
+	# Parse arguments
 	while (("$#")); do
 		case "$1" in
 		-h | --host)
@@ -132,6 +139,7 @@ main() {
 		shift
 	done
 
+	# Validate host
 	case "$host" in
 	vultr)
 		OS="debian"
@@ -140,17 +148,18 @@ main() {
 		OS="arch"
 		;;
 	*)
-		show_error "Unknown host: '$1'"
+		show_error "Unknown host: '$host'"
+		exit 1
 		;;
 	esac
 
-	# if is_setup; then
-	# 	f="do_setup_$(host)_usr"
-	# else
-	# 	f="do_init_$(host)_usr"
+	if $is_setup; then
+		flow_func="do_setup_${host}"
+	else
+		flow_func="do_init_${host}"
+	fi
 
-	echo "host: $host"
-	echo "is_setup: $is_setup"
+	$flow_func
 }
 
 main "$@"

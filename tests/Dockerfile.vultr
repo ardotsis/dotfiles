@@ -1,5 +1,6 @@
 FROM debian:bookworm
 
+# To expand arguments for install.sh in CMD.
 ARG INSTALL_ARGS=""
 ENV INSTALL_ARGS=${INSTALL_ARGS}
 
