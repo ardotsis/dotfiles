@@ -12,6 +12,7 @@ curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/
 curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/bootstrap.sh" | bash -s -- -h arch
 ```
 
+
 ## ToDo
 - [ ] Use a tools made by Rust.
   - zsh
