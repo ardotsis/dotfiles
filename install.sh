@@ -7,7 +7,7 @@ set -e -u -o pipefail -C
 readonly USERNAME="ardotsis"
 readonly DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
 
-if [[ $(id -u) -eq 0 ]]; then
+if [[ "$(id -u)" -eq 0 ]]; then
 	readonly SUDO=""
 else
 	readonly SUDO="sudo"
@@ -19,21 +19,27 @@ fi
 print_header() {
 	local text="$1"
 	local width=50
-	local padding=$(((width - ${#text} - 2) / 2))
-	local extra=$(((width - ${#text} - 2) % 2))
+	local padding="$(((width - ${#text} - 2) / 2))"
+	local extra="$(((width - ${#text} - 2) % 2))"
 
-	printf "#%.0s" $(seq 1 "$width")
+	printf "#%.0s" "$(seq 1 "$width")"
 	printf "\n"
 	printf "#%*s%s%*s#" "$padding" "" "$text" "$((padding + extra))" ""
 	printf "\n"
-	printf "#%.0s" $(seq 1 "$width")
+	printf "#%.0s" "$(seq 1 "$width")"
 	printf "\n"
+}
+
+show_info() {
+	local msg="$1"
+
+	printf "[INFO] %s\n" "$msg"
 }
 
 show_error() {
 	local msg="$1"
 
-	printf "%s\n" "$msg"
+	printf "[ERROR] %s\n" "$msg"
 }
 
 is_cmd_exist() {
@@ -46,7 +52,7 @@ is_cmd_exist() {
 	fi
 }
 
-get_rand_str() {
+get_random_str() {
 	local length="$1"
 
 	printf "%s" "$(tr -dc "A-Za-z0-9!?%=" </dev/urandom | head -c "$length")"
@@ -74,10 +80,11 @@ remove_package() {
 create_sudo_user() {
 	if [[ "$OS" = "debian" ]]; then
 		$SUDO useradd -m -s /bin/bash -G sudo "$USERNAME"
-		passwd=$(get_rand_str 32)
+		passwd="$(get_random_str 32)"
 		echo "$USERNAME:$passwd" | $SUDO chpasswd
 	fi
 }
+
 ##################################################
 #                   Installers                   #
 ##################################################
@@ -125,7 +132,7 @@ main() {
 		shift
 	done
 
-	case $host in
+	case "$host" in
 	vultr)
 		OS="debian"
 		;;
@@ -133,7 +140,7 @@ main() {
 		OS="arch"
 		;;
 	*)
-		echo "Unknown host: '$1'"
+		show_error "Unknown host: '$1'"
 		;;
 	esac
 
