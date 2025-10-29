@@ -2,12 +2,12 @@
 
 ## Install command for each host
 
-## Vultr VPS (vultr)
+### Vultr VPS (vultr)
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/bootstrap.sh" | bash -s -- -h vultr
 ```
 
-## Arch Linux (arch)
+### Arch Linux (arch)
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/bootstrap.sh" | bash -s -- -h arch
 ```
