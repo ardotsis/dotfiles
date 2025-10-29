@@ -5,4 +5,4 @@ RUN apt-get update && \
 COPY ./dotfiles /dotfiles
 COPY ./install.sh /install.sh
 RUN chmod +x ./install.sh
-CMD ["./install.sh", "vultr"]
+CMD ["./install.sh", "-h", "vultr", "-s"]

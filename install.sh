@@ -1,18 +1,21 @@
 #!/bin/bash
 set -e -u -o pipefail -C
 
-readonly HOST="$1"
+##################################################
+#                 Configurations                 #
+##################################################
 readonly USERNAME="ardotsis"
-readonly REPO="https://github.com/ardotsis/dotfiles.git"
+readonly DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
 
 if [[ $(id -u) -eq 0 ]]; then
-	echo "Run as root mode."
 	readonly SUDO=""
 else
-	echo "Run as non-root mode."
 	readonly SUDO="sudo"
 fi
 
+##################################################
+#                Common Functions                #
+##################################################
 print_header() {
 	local text="$1"
 	local width=50
@@ -20,11 +23,17 @@ print_header() {
 	local extra=$(((width - ${#text} - 2) % 2))
 
 	printf "#%.0s" $(seq 1 "$width")
-	echo
+	printf "\n"
 	printf "#%*s%s%*s#" "$padding" "" "$text" "$((padding + extra))" ""
-	echo
+	printf "\n"
 	printf "#%.0s" $(seq 1 "$width")
-	echo
+	printf "\n"
+}
+
+show_error() {
+	local msg="$1"
+
+	printf "%s\n" "$msg"
 }
 
 is_cmd_exist() {
@@ -40,21 +49,21 @@ is_cmd_exist() {
 get_rand_str() {
 	local length="$1"
 
-	printf %s "$(tr -dc "A-Za-z0-9!?%=" </dev/urandom | head -c "$length")"
+	printf "%s" "$(tr -dc "A-Za-z0-9!?%=" </dev/urandom | head -c "$length")"
 }
 
-inst_pkg() {
+install_package() {
 	local pkg="$1"
 
-	if [[ $OS = "debian" ]]; then
+	if [[ "$OS" = "debian" ]]; then
 		$SUDO apt-get install -y --no-install-recommends "$pkg"
 	fi
 }
 
-rm_pkg() {
+remove_package() {
 	local pkg="$1"
 
-	if [[ $OS = "debian" ]]; then
+	if [[ "$OS" = "debian" ]]; then
 		$SUDO apt-get remove -y "$pkg"
 		$SUDO apt-get purge -y "$pkg"
 		$SUDO apt-get autoremove -y
@@ -62,52 +71,79 @@ rm_pkg() {
 	fi
 }
 
-setup_sshd() {
-	echo "a"
+create_sudo_user() {
+	if [[ "$OS" = "debian" ]]; then
+		$SUDO useradd -m -s /bin/bash -G sudo "$USERNAME"
+		passwd=$(get_rand_str 32)
+		echo "$USERNAME:$passwd" | $SUDO chpasswd
+	fi
 }
-
-do_vultr_flow() {
-	OS="debian"
-
-	print_header "Create User"
-	$SUDO useradd -m -s /bin/bash -G sudo $USERNAME
-	passwd=$(get_rand_str 32)
-	echo "$USERNAME:$passwd" | $SUDO chpasswd
-
+##################################################
+#                   Installers                   #
+##################################################
+do_setup_vultr() {
 	if is_cmd_exist ufw; then
 		print_header "Uninstall UFW"
 		$SUDO ufw disable
-		rm_pkg "ufw"
+		remove_package "ufw"
 	fi
 
 	if ! is_cmd_exist git; then
 		print_header "Install Git"
-		inst_pkg "git"
+		install_package "git"
 	fi
 
-	print_header "Clone dotfiles repository"
+	print_header "Clone Dotfiles Repository"
 	cd "/home/$USERNAME"
-	sudo -u "$USERNAME" bash -c "git clone -b main '$REPO'"
+	git clone -b main "$DOTFILES_REPO"
 }
 
-do_arch_flow() {
+do_setup_arch_usr() {
 	OS="arch"
 
 	echo "arch - Not implemented yet."
 }
 
 main() {
-	case "$HOST" in
-	"vultr")
-		do_vultr_flow
+	is_setup=false
+	host=""
+
+	while (("$#")); do
+		case "$1" in
+		-h | --host)
+			host="$2"
+			shift
+			;;
+		-s | --setup)
+			is_setup=true
+			;;
+		*)
+			echo "Unknown parameter: '$1'"
+			exit 1
+			;;
+		esac
+		shift
+	done
+
+	case $host in
+	vultr)
+		OS="debian"
 		;;
-	"arch")
-		do_arch_flow
+	arch)
+		OS="arch"
 		;;
 	*)
-		echo "Unknown hostname: '$HOST'"
+		echo "Unknown host: '$1'"
 		;;
 	esac
+
+	# if is_setup; then
+	# 	f="do_setup_$(host)_usr"
+	# else
+	# 	f="do_init_$(host)_usr"
+
+	echo "host: $host"
+	echo "is_setup: $is_setup"
 }
 
-main
+main "$@"
