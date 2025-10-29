@@ -13,18 +13,18 @@ curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/
 ```
 
 ## ToDo
-[] Use a tools made by Rust.
+- [ ] Use a tools made by Rust.
   - zsh
 
-[] Backup dotfiles repository on another Git provider.
+- [ ] Backup dotfiles repository on another Git provider.
   - GitLab
   - Codeberg
   - Gitea
 
-[] Debian
+- [ ] Debian
   - Preseed
 
-[] dotfiles for Windows.
+- [ ] dotfiles for Windows.
   - unattend.xml
   - winutil
   - Custom settings
@@ -32,5 +32,5 @@ curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/
   - komorebi
   - WindowsTerminal
 
-[] See this.
+- [ ] See this.
   - https://github.com/ardotsis/dotfiles-old
