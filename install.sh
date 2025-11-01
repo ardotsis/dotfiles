@@ -141,6 +141,8 @@ do_setup_vultr() {
 	print_header "Clone Dotfiles Repository"
 	cd "/home/$USERNAME"
 	git clone -b main "$DOTFILES_REPO"
+	whoami
+	ls ~
 }
 
 do_setup_arch() {
