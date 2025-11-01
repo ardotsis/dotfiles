@@ -1,6 +1,6 @@
 # ar.sis's dotfiles
 
-Goal: Simple, Minimal, Secure, Freedom, Maximized Efficient, Kawaii, Menhera, Unique
+Simple, Minimal, Secure, Freedom, Maximized Efficient, Kawaii, Unique, menhera
 
 ## Install
 
@@ -38,6 +38,6 @@ curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/
   - https://github.com/ardotsis/dotfiles-old
 
 
-## VSCode
+## Memo
 
 - Do not use VSCode with Japanese IME. Some keybindings may not work. (e.g., Focus on Terminal)
