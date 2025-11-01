@@ -1,6 +1,6 @@
 # ar.sis's dotfiles
 
-Simple, Minimal, Secure, Freedom, Maximized Efficient, Kawaii, Unique, menhera
+_simple / minimal / secure / freedom / efficient / kawaii / unique / menhera_
 
 ## Install
 
