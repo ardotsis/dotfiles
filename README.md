@@ -4,14 +4,14 @@ Goal: Simple, Minimal, Secure, Freedom, Maximized Efficient, Kawaii, Menhera, Un
 
 ## Install
 
-### Vultr VPS (vultr)
+### ardotsis@vultr (debian)
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/bootstrap.sh" | bash -s -- -h vultr
+curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh" | bash -s -- -h vultr
 ```
 
-### Arch Linux (arch)
+### ardotsis@arch (arch)
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/bootstrap.sh" | bash -s -- -h arch
+curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh" | bash -s -- -h arch
 ```
 
 ## ToDo

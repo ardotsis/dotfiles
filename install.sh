@@ -142,7 +142,7 @@ do_setup_vultr() {
 	cd "/home/$USERNAME"
 	git clone -b main "$DOTFILES_REPO"
 	whoami
-	ls ~
+	ls -l
 }
 
 do_setup_arch() {
@@ -175,7 +175,7 @@ main() {
 	done
 
 	if [[ -z $host ]]; then
-		printf "Please specify the host name using '--host (-h)' parameter."
+		_err "Please specify the host name using '--host (-h)' parameter."
 		exit 1
 	fi
 
@@ -206,6 +206,7 @@ main() {
 		script_path=$(get_script_path)
 
 		_debug_vars "script_path"
+		# TODO: download the script
 		local cmd=("$script_path" "--host" "$host" "--setup")
 		print_header "Run Script as $USERNAME"
 		sudo -u "$USERNAME" -- "${cmd[@]}"
