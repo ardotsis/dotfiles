@@ -1,5 +1,6 @@
 @echo off
 set COMMIT_MESSAGE=%1
+
 git fetch
 git merge
 git add -A
