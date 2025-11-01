@@ -4,13 +4,13 @@ set -e -u -o pipefail -C
 ##################################################
 #                 Configurations                 #
 ##################################################
-declare -r USERNAME="ardotsis"
-declare -r DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
+readonly USERNAME="ardotsis"
+readonly DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
 
 if [[ $(id -u) -eq 0 ]]; then
-	declare -r SUDO=""
+	readonly SUDO=""
 else
-	declare -r SUDO="sudo"
+	readonly SUDO="sudo"
 fi
 
 ##################################################
