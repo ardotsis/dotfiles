@@ -1,5 +1,7 @@
 # ar.sis's dotfiles
 
+Goal: Simple, Minimal, Secure, Freedom, Maximized Efficient, Kawaii, Menhera, Unique
+
 ## Install
 
 ### Vultr VPS (vultr)

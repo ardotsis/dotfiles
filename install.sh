@@ -4,13 +4,13 @@ set -e -u -o pipefail -C
 ##################################################
 #                 Configurations                 #
 ##################################################
-readonly USERNAME="ardotsis"
-readonly DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
+declare -r USERNAME="ardotsis"
+declare -r DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
 
-if [[ "$(id -u)" -eq 0 ]]; then
-	readonly SUDO=""
+if [[ $(id -u) -eq 0 ]]; then
+	declare -r SUDO=""
 else
-	readonly SUDO="sudo"
+	declare -r SUDO="sudo"
 fi
 
 ##################################################
@@ -18,28 +18,62 @@ fi
 ##################################################
 print_header() {
 	local text="$1"
-	local width=50
+	local width=35
 	local padding="$(((width - ${#text} - 2) / 2))"
 	local extra="$(((width - ${#text} - 2) % 2))"
 
-	printf "#%.0s" "$(seq 1 "$width")"
+	printf "#%.0s" $(seq 1 "$width")
 	printf "\n"
 	printf "#%*s%s%*s#" "$padding" "" "$text" "$((padding + extra))" ""
 	printf "\n"
-	printf "#%.0s" "$(seq 1 "$width")"
+	printf "#%.0s" $(seq 1 "$width")
 	printf "\n"
 }
 
-show_info() {
-	local msg="$1"
-
-	printf "[INFO] %s\n" "$msg"
+_print_msg() {
+	local level="$1"
+	local msg="$2"
+	printf "%s\n" "[$level] $msg"
 }
 
-show_error() {
+_debug() {
 	local msg="$1"
+	_print_msg "DEBUG" "$msg"
+}
 
-	printf "[ERROR] %s\n" "$msg"
+_debug_vars() {
+	local var_names=("$@")
+	local msg=""
+
+	for var_name in "${var_names[@]}"; do
+		fmt="\$$var_name='${!var_name}'"
+		if [[ -z $msg ]]; then
+			msg="$fmt"
+		else
+			msg="$msg $fmt"
+		fi
+	done
+
+	_print_msg "DEBUG_VARS" "$msg"
+}
+
+_info() {
+	local msg="$1"
+	_print_msg "INFO" "$msg"
+}
+
+_warn() {
+	local msg="$1"
+	_print_msg "WARN" "$msg"
+}
+
+_err() {
+	local msg="$1"
+	_print_msg "ERROR" "$msg"
+}
+
+get_script_path() {
+	printf "%s" "$(readlink -f "$0")"
 }
 
 is_cmd_exist() {
@@ -77,21 +111,19 @@ remove_package() {
 	fi
 }
 
-create_sudo_user() {
+add_ardotsis_chan() {
+	local passwd="$1"
+
+	print_header "Add ar.sis chan"
 	if [[ "$OS" = "debian" ]]; then
-		$SUDO useradd -m -s /bin/bash -G sudo "$USERNAME"
-		passwd="$(get_random_str 32)"
-		echo "$USERNAME:$passwd" | $SUDO chpasswd
+		$SUDO useradd -m -s "/bin/bash" -G "sudo" "$USERNAME"
+		printf "%s" "$USERNAME:$passwd" | $SUDO chpasswd
 	fi
 }
 
 ##################################################
 #                   Installers                   #
 ##################################################
-do_init_vultr() {
-	echo "do_init_arch - Not implemented yet."
-}
-
 do_setup_vultr() {
 	if is_cmd_exist ufw; then
 		print_header "Uninstall UFW"
@@ -109,19 +141,18 @@ do_setup_vultr() {
 	git clone -b main "$DOTFILES_REPO"
 }
 
-do_init_arch() {
-	echo "do_init_arch - Not implemented yet."
-}
-
 do_setup_arch() {
-	echo "do_setup_arch - Not implemented yet."
+	_err "do_setup_arch - Not implemented yet."
 }
 
 main() {
-	is_setup=false
-	host=""
+	_debug "Start main func"
+	_debug_vars "SUDO"
 
 	# Parse arguments
+	local host
+	local is_setup=false
+
 	while (("$#")); do
 		case "$1" in
 		-h | --host)
@@ -132,12 +163,14 @@ main() {
 			is_setup=true
 			;;
 		*)
-			echo "Unknown parameter: '$1'"
+			_err "Unknown parameter: '$1'"
 			exit 1
 			;;
 		esac
 		shift
 	done
+
+	_debug_vars "host" "is_setup"
 
 	# Validate host
 	case "$host" in
@@ -148,18 +181,28 @@ main() {
 		OS="arch"
 		;;
 	*)
-		show_error "Unknown host: '$host'"
+		_err "Unknown host: '$host'"
 		exit 1
 		;;
 	esac
 
 	if $is_setup; then
-		flow_func="do_setup_${host}"
+		"do_setup_${host}"
 	else
-		flow_func="do_init_${host}"
-	fi
+		local passwd
+		passwd=$(get_random_str 32)
+		add_ardotsis_chan "$passwd"
+		_info "Password for ar.sis: $passwd"
 
-	$flow_func
+		script_path=$(get_script_path)
+		_info "Allow $USERNAME to run script as root"
+		printf "%s\n" "$USERNAME ALL=(root) NOPASSWD: $script_path" >/etc/sudoers.d/${USERNAME}_dotfiles
+
+		_debug_vars "script_path"
+		local cmd=("$script_path" "-h" "$host" "-s")
+		print_header "Run Script as $USERNAME"
+		sudo -u "$USERNAME" -- "${cmd[@]}"
+	fi
 }
 
 main "$@"

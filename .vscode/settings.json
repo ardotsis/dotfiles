@@ -1,4 +1,8 @@
 {
-  "files.eol": "auto",
-  "cSpell.words": ["ardotsis"]
+  "files.eol": "\n",
+  "cSpell.words": ["ardotsis"],
+  "code-runner.runInTerminal": true,
+  "code-runner.executorMap": {
+    "shellscript": "cmd /c .\\scripts\\test_vultr.bat \"-h vultr\""
+  }
 }

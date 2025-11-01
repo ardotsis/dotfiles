@@ -1,4 +1,7 @@
 @echo off
-git add .
-git commit -m "update from script"
+set COMMIT_MESSAGE=%1
+git fetch
+git merge
+git add -A
+git commit -m "%COMMIT_MESSAGE%"
 git push
