@@ -4,12 +4,12 @@ Goal: Simple, Minimal, Secure, Freedom, Maximized Efficient, Kawaii, Menhera, Un
 
 ## Install
 
-### ardotsis@vultr (debian)
+### `ardotsis@vultr` (debian)
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh" | bash -s -- -h vultr
 ```
 
-### ardotsis@arch (arch)
+### `ardotsis@arch` (arch)
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh" | bash -s -- -h arch
 ```
@@ -36,3 +36,8 @@ curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/
 
 - [ ] See this.
   - https://github.com/ardotsis/dotfiles-old
+
+
+## VSCode
+
+- Do not use VSCode with Japanese IME. Some keybindings may not work. (e.g, )
