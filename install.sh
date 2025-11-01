@@ -30,15 +30,16 @@ print_header() {
 	printf "\n"
 }
 
-_print_msg() {
+_log() {
 	local level="$1"
 	local msg="$2"
-	printf "%s\n" "[$level] $msg"
+
+	printf "[%s] %s\n" "$level" "$msg"
 }
 
 _debug() {
 	local msg="$1"
-	_print_msg "DEBUG" "$msg"
+	_log "DEBUG" "$msg"
 }
 
 _debug_vars() {
@@ -54,22 +55,22 @@ _debug_vars() {
 		fi
 	done
 
-	_print_msg "DEBUG_VARS" "$msg"
+	_log "DEBUG_VARS" "$msg"
 }
 
 _info() {
 	local msg="$1"
-	_print_msg "INFO" "$msg"
+	_log "INFO" "$msg"
 }
 
 _warn() {
 	local msg="$1"
-	_print_msg "WARN" "$msg"
+	_log "WARN" "$msg"
 }
 
 _err() {
 	local msg="$1"
-	_print_msg "ERROR" "$msg"
+	_log "ERROR" "$msg"
 }
 
 get_script_path() {
@@ -117,7 +118,8 @@ add_ardotsis_chan() {
 	print_header "Add ar.sis chan"
 	if [[ "$OS" = "debian" ]]; then
 		$SUDO useradd -m -s "/bin/bash" -G "sudo" "$USERNAME"
-		printf "%s" "$USERNAME:$passwd" | $SUDO chpasswd
+		printf "%s:%s" "$USERNAME" "$passwd" | $SUDO chpasswd
+		printf "%s ALL=(ALL) NOPASSWD: ALL\n" $USERNAME >/etc/sudoers.d/$USERNAME
 	fi
 }
 
@@ -150,7 +152,7 @@ main() {
 	_debug_vars "SUDO"
 
 	# Parse arguments
-	local host
+	local host=""
 	local is_setup=false
 
 	while (("$#")); do
@@ -169,6 +171,11 @@ main() {
 		esac
 		shift
 	done
+
+	if [[ -z $host ]]; then
+		printf "Please specify the host name using '--host (-h)' parameter."
+		exit 1
+	fi
 
 	_debug_vars "host" "is_setup"
 
@@ -195,11 +202,9 @@ main() {
 		_info "Password for ar.sis: $passwd"
 
 		script_path=$(get_script_path)
-		_info "Allow $USERNAME to run script as root"
-		printf "%s\n" "$USERNAME ALL=(root) NOPASSWD: $script_path" >/etc/sudoers.d/${USERNAME}_dotfiles
 
 		_debug_vars "script_path"
-		local cmd=("$script_path" "-h" "$host" "-s")
+		local cmd=("$script_path" "--host" "$host" "--setup")
 		print_header "Run Script as $USERNAME"
 		sudo -u "$USERNAME" -- "${cmd[@]}"
 	fi
