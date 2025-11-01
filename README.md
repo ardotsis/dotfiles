@@ -40,4 +40,4 @@ curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/
 
 ## VSCode
 
-- Do not use VSCode with Japanese IME. Some keybindings may not work. (e.g, )
+- Do not use VSCode with Japanese IME. Some keybindings may not work. (e.g, Focus on Terminal)
