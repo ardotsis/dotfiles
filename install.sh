@@ -4,8 +4,10 @@ set -e -u -o pipefail -C
 ##################################################
 #                 Configurations                 #
 ##################################################
+DEBUG=false
 readonly USERNAME="ardotsis"
 readonly DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
+readonly INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
 
 if [[ $(id -u) -eq 0 ]]; then
 	readonly SUDO=""
@@ -111,7 +113,9 @@ remove_package() {
 		$SUDO apt-get clean
 	fi
 }
-
+##################################################
+#                   Installers                   #
+##################################################
 add_ardotsis_chan() {
 	local passwd="$1"
 
@@ -123,9 +127,6 @@ add_ardotsis_chan() {
 	fi
 }
 
-##################################################
-#                   Installers                   #
-##################################################
 do_setup_vultr() {
 	if is_cmd_exist ufw; then
 		print_header "Uninstall UFW"
@@ -141,6 +142,7 @@ do_setup_vultr() {
 	print_header "Clone Dotfiles Repository"
 	cd "/home/$USERNAME"
 	git clone -b main "$DOTFILES_REPO"
+
 }
 
 do_setup_arch() {
@@ -150,6 +152,16 @@ do_setup_arch() {
 main() {
 	_debug "Start main func"
 	_debug_vars "SUDO"
+
+	# Download install script and run locally
+	if [[ -f "$0" ]]; then
+		script_path="/var/tmp/install.sh"
+		_info "Downloading install script..."
+		curl -fsSL "$INSTALL_SCRIPT_URL" -o $script_path
+		chmod +x $script_path
+		$script_path
+		exit 0
+	fi
 
 	# Parse arguments
 	local host=""

@@ -1,8 +1,26 @@
 {
-  "files.eol": "\n",
-  "cSpell.words": ["ardotsis"],
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnPaste": true,
+    "editor.formatOnSave": true
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "DavidAnson.vscode-markdownlint",
+    "editor.formatOnPaste": true,
+    "editor.formatOnSave": true
+  },
   "code-runner.runInTerminal": true,
-  "code-runner.executorMap": {
-    "shellscript": "cmd /c .\\scripts\\test_vultr.bat \"-h vultr\""
-  }
+  "cSpell.words": ["ardotsis", "menhera", "menhera.art"],
+  "editor.minimap.enabled": false,
+  "files.autoSave": "onFocusChange",
+  "files.autoSaveDelay": 100,
+  "files.eol": "\n",
+  "vscode-neovim.compositeKeys": {
+    "jj": {
+      "command": "vscode-neovim.escape"
+    }
+  },
+  "vscode-neovim.neovimExecutablePaths.win32": "C:\\Program Files\\Neovim\\bin\\nvim.exe",
+  "workbench.colorTheme": "Rouge 2",
+  "workbench.iconTheme": "material-icon-theme"
 }

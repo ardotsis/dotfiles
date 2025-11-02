@@ -1,3 +1,10 @@
 {
-  "recommendations": ["timonwong.shellcheck", "asvetliakov.vscode-neovim"]
+  "recommendations": [
+    "timonwong.shellcheck",
+    "asvetliakov.vscode-neovim",
+    "davidanson.vscode-markdownlint",
+    "esbenp.prettier-vscode",
+    "streetsidesoftware.code-spell-checker",
+    "richie5um2.vscode-sort-json"
+  ]
 }

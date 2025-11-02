@@ -1,20 +1,23 @@
 # ar.sis's dotfiles
 
-_simple / minimal / secure / freedom / efficient / kawaii / unique / menhera_
+_minimal / secure / free / reproducible / efficient / unique / kawaii / menhera_
 
 ## Install
 
 ### `ardotsis@vultr`
+
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh" | bash -s -- -h vultr
 ```
 
 ### `ardotsis@arch`
+
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh" | bash -s -- -h arch
 ```
 
 ## ToDo
+
 - [ ] Use a tools made by Rust.
   - zsh
 
@@ -35,9 +38,13 @@ curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/
   - WindowsTerminal
 
 - [ ] See this.
-  - https://github.com/ardotsis/dotfiles-old
-
+  - <https://github.com/ardotsis/dotfiles-old>
 
 ## Memo
 
+### VSCode
+
 - Do not use VSCode with Japanese IME. Some keybindings may not work. (e.g., Focus on Terminal)
+- VSCode settings might conflict between _User_ and _Workstation_. Backup and reset the _User_ configuration files.
+  - "C:\Users\<USER>\AppData\Roaming\Code\User\settings.json"
+  - "C:\Users\<USER>\AppData\Roaming\Code\User\keybindings.json"
