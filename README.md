@@ -46,5 +46,5 @@ curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/
 
 - Do not use VSCode with Japanese IME. Some keybindings may not work. (e.g., Focus on Terminal)
 - VSCode settings might conflict between _User_ and _Workstation_. Backup and reset the _User_ configuration files.
-  - "C:\Users\<USER>\AppData\Roaming\Code\User\settings.json"
-  - "C:\Users\<USER>\AppData\Roaming\Code\User\keybindings.json"
+  - `"C:\Users\<USER>\AppData\Roaming\Code\User\settings.json"`
+  - `"C:\Users\<USER>\AppData\Roaming\Code\User\keybindings.json"`
