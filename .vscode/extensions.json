@@ -5,6 +5,7 @@
     "davidanson.vscode-markdownlint",
     "esbenp.prettier-vscode",
     "streetsidesoftware.code-spell-checker",
-    "richie5um2.vscode-sort-json"
+    "richie5um2.vscode-sort-json",
+    "formulahendry.code-runner"
   ]
 }

@@ -1,26 +1,24 @@
 {
+  "files.autoSaveDelay": 100,
+  "files.autoSave": "onFocusChange",
+  "files.eol": "\n",
+  "vscode-neovim.neovimExecutablePaths.win32": "C:\\Program Files\\Neovim\\bin\\nvim.exe",
+  "workbench.colorTheme": "Rouge 2",
+  "workbench.iconTheme": "material-icon-theme",
   "[jsonc]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnPaste": true,
-    "editor.formatOnSave": true
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[markdown]": {
-    "editor.defaultFormatter": "DavidAnson.vscode-markdownlint",
-    "editor.formatOnPaste": true,
-    "editor.formatOnSave": true
+    "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
   },
-  "code-runner.runInTerminal": true,
-  "cSpell.words": ["ardotsis", "menhera", "menhera.art"],
-  "editor.minimap.enabled": false,
-  "files.autoSave": "onFocusChange",
-  "files.autoSaveDelay": 100,
-  "files.eol": "\n",
+  "cSpell.words": ["ardotsis", "ar.sis", "menhera.art", "menhera"],
   "vscode-neovim.compositeKeys": {
     "jj": {
       "command": "vscode-neovim.escape"
     }
   },
-  "vscode-neovim.neovimExecutablePaths.win32": "C:\\Program Files\\Neovim\\bin\\nvim.exe",
-  "workbench.colorTheme": "Rouge 2",
-  "workbench.iconTheme": "material-icon-theme"
+  "code-runner.runInTerminal": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
+  "editor.minimap.enabled": true
 }
