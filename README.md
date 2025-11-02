@@ -31,6 +31,7 @@ curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/
 
 - [ ] dotfiles for Windows.
   - unattend.xml
+    - <https://schneegans.de/windows/unattend-generator/>
   - winutil
   - Custom settings
   - Install Apps

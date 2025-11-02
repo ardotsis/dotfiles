@@ -113,6 +113,14 @@ remove_package() {
 		$SUDO apt-get clean
 	fi
 }
+
+link_file() {
+	local actual="$1"
+	local dest="$2"
+
+	ln -sf "$actual" "$dest"
+}
+
 ##################################################
 #                   Installers                   #
 ##################################################
@@ -140,9 +148,7 @@ do_setup_vultr() {
 	fi
 
 	print_header "Clone Dotfiles Repository"
-	cd "/home/$USERNAME"
-	git clone -b main "$DOTFILES_REPO"
-
+	git clone -b main "$DOTFILES_REPO" "/home/$USERNAME/.dotfiles"
 }
 
 do_setup_arch() {
@@ -154,14 +160,14 @@ main() {
 	_debug_vars "SUDO"
 
 	# Download install script and run locally
-	if [[ -f "$0" ]]; then
-		script_path="/var/tmp/install.sh"
-		_info "Downloading install script..."
-		curl -fsSL "$INSTALL_SCRIPT_URL" -o $script_path
-		chmod +x $script_path
-		$script_path
-		exit 0
-	fi
+	# if [[ -f "$0" ]]; then
+	# 	script_path="/var/tmp/install.sh"
+	# 	_info "Downloading install script..."
+	# 	curl -fsSL "$INSTALL_SCRIPT_URL" -o $script_path
+	# 	chmod +x $script_path
+	# 	$script_path "$@"
+	# 	exit 0
+	# fi
 
 	# Parse arguments
 	local host=""
@@ -175,6 +181,9 @@ main() {
 			;;
 		-s | --setup)
 			is_setup=true
+			;;
+		-d | --debug)
+			DEBUG=true
 			;;
 		*)
 			_err "Unknown parameter: '$1'"

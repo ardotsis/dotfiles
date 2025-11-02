@@ -1,5 +1,5 @@
 # General
-alias reload!='. ~/.zshrc'
+# alias reload!='. ~/.zshrc'
 alias cls='clear'
 
 # Docker

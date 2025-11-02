@@ -1,24 +1,28 @@
 {
-  "files.autoSaveDelay": 100,
-  "files.autoSave": "onFocusChange",
-  "files.eol": "\n",
-  "vscode-neovim.neovimExecutablePaths.win32": "C:\\Program Files\\Neovim\\bin\\nvim.exe",
-  "workbench.colorTheme": "Rouge 2",
-  "workbench.iconTheme": "material-icon-theme",
   "[jsonc]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[markdown]": {
     "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
   },
+  "code-runner.runInTerminal": true,
   "cSpell.words": ["ardotsis", "ar.sis", "menhera.art", "menhera"],
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
+  "editor.minimap.enabled": true,
+  "explorer.confirmDragAndDrop": false,
+  "extensions.experimental.affinity": {
+    "asvetliakov.vscode-neovim": 1
+  },
+  "files.autoSave": "onFocusChange",
+  "files.autoSaveDelay": 100,
+  "files.eol": "\n",
   "vscode-neovim.compositeKeys": {
     "jj": {
       "command": "vscode-neovim.escape"
     }
   },
-  "code-runner.runInTerminal": true,
-  "editor.formatOnPaste": true,
-  "editor.formatOnSave": true,
-  "editor.minimap.enabled": true
+  "vscode-neovim.neovimExecutablePaths.win32": "C:\\Program Files\\Neovim\\bin\\nvim.exe",
+  "workbench.colorTheme": "Rouge 2",
+  "workbench.iconTheme": "material-icon-theme"
 }
