@@ -1,12 +1,26 @@
 {
+  "[json]": {
+    "editor.codeActionsOnSave": {
+      "source.sort.json": "always"
+    },
+    "editor.defaultFormatter": "richie5um2.vscode-sort-json"
+  },
   "[jsonc]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.codeActionsOnSave": {
+      "source.sort.json": "always"
+    },
+    "editor.defaultFormatter": "richie5um2.vscode-sort-json"
   },
   "[markdown]": {
     "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
   },
   "code-runner.runInTerminal": true,
-  "cSpell.words": ["ardotsis", "ar.sis", "menhera.art", "menhera"],
+  "cSpell.words": [
+    "ardotsis",
+    "ar.sis",
+    "menhera.art",
+    "menhera"
+  ],
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
   "editor.minimap.enabled": true,
