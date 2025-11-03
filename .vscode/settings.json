@@ -24,6 +24,8 @@
   ],
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
+  // editor.lightbulb.enabled: https://github.com/microsoft/vscode-copilot-release/issues/735#issuecomment-1886589021
+  "editor.lightbulb.enabled": "off",
   "editor.minimap.enabled": true,
   "explorer.confirmDragAndDrop": false,
   "extensions.experimental.affinity": {
@@ -32,9 +34,9 @@
   "files.autoSave": "onFocusChange",
   "files.autoSaveDelay": 100,
   "files.eol": "\n",
-  // Disable sparkling star hint
-  // See this: https://github.com/microsoft/vscode-copilot-release/issues/735#issuecomment-1886589021
+  // github.copilot.editor.enableCodeActions: https://github.com/microsoft/vscode-copilot-release/issues/735#issuecomment-1886589021
   "github.copilot.editor.enableCodeActions": false,
+  "telemetry.feedback.enabled": false,
   "vscode-neovim.compositeKeys": {
     "jj": {
       "command": "vscode-neovim.escape"

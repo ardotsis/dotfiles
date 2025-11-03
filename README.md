@@ -71,7 +71,7 @@ curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/
 
 ## Memo
 
-### VSCode
+### About VSCode
 
 - Do not use VSCode with Japanese IME. Some keybindings may not work. (e.g., Focus on Terminal)
 - VSCode settings might conflict between _User_ and _Workstation_. Backup and reset the _User_ configuration files.
