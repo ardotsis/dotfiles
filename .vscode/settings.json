@@ -19,7 +19,8 @@
     "ardotsis",
     "ar.sis",
     "menhera.art",
-    "menhera"
+    "menhera",
+    "kawaii"
   ],
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
@@ -31,6 +32,9 @@
   "files.autoSave": "onFocusChange",
   "files.autoSaveDelay": 100,
   "files.eol": "\n",
+  // Disable sparkling star hint
+  // See this: https://github.com/microsoft/vscode-copilot-release/issues/735#issuecomment-1886589021
+  "github.copilot.editor.enableCodeActions": false,
   "vscode-neovim.compositeKeys": {
     "jj": {
       "command": "vscode-neovim.escape"

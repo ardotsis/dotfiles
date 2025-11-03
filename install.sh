@@ -36,7 +36,9 @@ _log() {
 	local level="$1"
 	local msg="$2"
 
-	printf "[%s] %s\n" "$level" "$msg"
+	if $DEBUG; then
+		printf "[%s] %s\n" "$level" "$msg"
+	fi
 }
 
 _debug() {
@@ -118,7 +120,7 @@ link_file() {
 	local actual="$1"
 	local dest="$2"
 
-	ln -sf "$actual" "$dest"
+	ln -s "$actual" "$dest"
 }
 
 ##################################################
@@ -149,6 +151,9 @@ do_setup_vultr() {
 
 	print_header "Clone Dotfiles Repository"
 	git clone -b main "$DOTFILES_REPO" "/home/$USERNAME/.dotfiles"
+
+	print_header "Install Neovim"
+	install_package "neovim"
 }
 
 do_setup_arch() {
@@ -159,15 +164,15 @@ main() {
 	_debug "Start main func"
 	_debug_vars "SUDO"
 
-	# Download install script and run locally
-	# if [[ -f "$0" ]]; then
-	# 	script_path="/var/tmp/install.sh"
-	# 	_info "Downloading install script..."
-	# 	curl -fsSL "$INSTALL_SCRIPT_URL" -o $script_path
-	# 	chmod +x $script_path
-	# 	$script_path "$@"
-	# 	exit 0
-	# fi
+	Download install script and run locally
+	if [[ -f "$0" ]]; then
+		script_path="/var/tmp/install.sh"
+		_info "Downloading install script..."
+		curl -fsSL "$INSTALL_SCRIPT_URL" -o $script_path
+		chmod +x $script_path
+		$script_path "$@"
+		exit 0
+	fi
 
 	# Parse arguments
 	local host=""

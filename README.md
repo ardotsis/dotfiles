@@ -1,6 +1,6 @@
 # ar.sis's dotfiles
 
-_minimal / secure / free / reproducible / efficient / unique / kawaii / menhera_
+_simple / minimal / secure / free / reproducible / efficient / unique / kawaii / menhera_
 
 ## Install
 
@@ -15,6 +15,34 @@ curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/
 ```sh
 curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh" | bash -s -- -h arch
 ```
+
+### `Windows`
+
+```batch
+(Placeholder)
+```
+
+## Shortcut Keys
+
+### System
+
+#### Windows
+
+- (Placeholder)
+
+#### Arch Linux
+
+- (Placeholder)
+
+### Applications
+
+#### VSCode
+
+- Toggle Github Copilot completions: `F1`
+
+#### Neovim
+
+- (Placeholder)
 
 ## ToDo
 
