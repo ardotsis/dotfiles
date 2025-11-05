@@ -4,9 +4,13 @@ set -e -u -o pipefail -C
 ##################################################
 #                 Configurations                 #
 ##################################################
-DEBUG=false
+DEBUG="false"
+OS=""
+HOST=""
 readonly USERNAME="ardotsis"
+readonly DOTFILES_DIR="/home/$USERNAME/.dotfiles"
 readonly DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
+readonly LOCAL_DOTFILES_REPO="/dotfiles"
 readonly INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
 
 if [[ $(id -u) -eq 0 ]]; then
@@ -36,7 +40,7 @@ _log() {
 	local level="$1"
 	local msg="$2"
 
-	if $DEBUG; then
+	if [[ "$DEBUG" == "true" ]]; then
 		printf "[%s] %s\n" "$level" "$msg"
 	fi
 }
@@ -100,7 +104,7 @@ get_random_str() {
 install_package() {
 	local pkg="$1"
 
-	if [[ "$OS" = "debian" ]]; then
+	if [[ "$OS" == "debian" ]]; then
 		$SUDO apt-get install -y --no-install-recommends "$pkg"
 	fi
 }
@@ -108,7 +112,7 @@ install_package() {
 remove_package() {
 	local pkg="$1"
 
-	if [[ "$OS" = "debian" ]]; then
+	if [[ "$OS" == "debian" ]]; then
 		$SUDO apt-get remove -y "$pkg"
 		$SUDO apt-get purge -y "$pkg"
 		$SUDO apt-get autoremove -y
@@ -123,19 +127,46 @@ link_file() {
 	ln -s "$actual" "$dest"
 }
 
-##################################################
-#                   Installers                   #
-##################################################
+fetch_config_path() {
+	local common_dir="$DOTFILES_DIR/dotfiles"
+
+	while IFS= read -r -d "" item; do
+		if [[ $item == *.$HOST ]]; then
+			_debug_vars "item"
+			if [[ -f $item ]]; then
+				echo "file"
+			elif [[ -d $item ]]; then
+				echo "dir"
+			fi
+		fi
+	done < <(find "$common_dir" -print0)
+}
+
 add_ardotsis_chan() {
 	local passwd="$1"
 
 	print_header "Add ar.sis chan"
-	if [[ "$OS" = "debian" ]]; then
+	if [[ "$OS" == "debian" ]]; then
 		$SUDO useradd -m -s "/bin/bash" -G "sudo" "$USERNAME"
 		printf "%s:%s" "$USERNAME" "$passwd" | $SUDO chpasswd
 		printf "%s ALL=(ALL) NOPASSWD: ALL\n" $USERNAME >/etc/sudoers.d/$USERNAME
 	fi
 }
+
+clone_dotfiles_repo() {
+	local from="$1"
+
+	_info "Clone dotfiles repository from $from..."
+	if [[ $from == "git" ]]; then
+		git clone -b main "$DOTFILES_REPO" $DOTFILES_DIR
+	elif [[ $from == "local" ]]; then
+		cp -r "$LOCAL_DOTFILES_REPO" "$DOTFILES_DIR"
+		chown -R "$USERNAME:$USERNAME" "$DOTFILES_DIR"
+	fi
+}
+##################################################
+#                   Installers                   #
+##################################################
 
 do_setup_vultr() {
 	if is_cmd_exist ufw; then
@@ -150,10 +181,15 @@ do_setup_vultr() {
 	fi
 
 	print_header "Clone Dotfiles Repository"
-	git clone -b main "$DOTFILES_REPO" "/home/$USERNAME/.dotfiles"
+	if [[ "$DEBUG" == "true" ]]; then
+		clone_dotfiles_repo "local"
+	else
+		clone_dotfiles_repo "git"
+	fi
+	# print_header "Install Neovim"
+	# install_package "neovim"
 
-	print_header "Install Neovim"
-	install_package "neovim"
+	fetch_config_path
 }
 
 do_setup_arch() {
@@ -164,31 +200,30 @@ main() {
 	_debug "Start main func"
 	_debug_vars "SUDO"
 
-	Download install script and run locally
-	if [[ -f "$0" ]]; then
-		script_path="/var/tmp/install.sh"
-		_info "Downloading install script..."
-		curl -fsSL "$INSTALL_SCRIPT_URL" -o $script_path
-		chmod +x $script_path
-		$script_path "$@"
-		exit 0
-	fi
+	# Download install script and run locally
+	# if [[ -f "$0" ]]; then
+	# 	script_path="/var/tmp/install.sh"
+	# 	_info "Downloading install script..."
+	# 	curl -fsSL "$INSTALL_SCRIPT_URL" -o $script_path
+	# 	chmod +x $script_path
+	# 	$script_path "$@"
+	# 	exit 0
+	# fi
 
 	# Parse arguments
-	local host=""
 	local is_setup=false
 
 	while (("$#")); do
 		case "$1" in
 		-h | --host)
-			host="$2"
+			HOST="$2"
 			shift
 			;;
 		-s | --setup)
-			is_setup=true
+			is_setup="true"
 			;;
 		-d | --debug)
-			DEBUG=true
+			DEBUG="true"
 			;;
 		*)
 			_err "Unknown parameter: '$1'"
@@ -198,15 +233,15 @@ main() {
 		shift
 	done
 
-	if [[ -z $host ]]; then
+	if [[ -z $HOST ]]; then
 		_err "Please specify the host name using '--host (-h)' parameter."
 		exit 1
 	fi
 
-	_debug_vars "host" "is_setup"
+	_debug_vars "HOST" "is_setup" "DEBUG"
 
 	# Validate host
-	case "$host" in
+	case "$HOST" in
 	vultr)
 		OS="debian"
 		;;
@@ -214,13 +249,13 @@ main() {
 		OS="arch"
 		;;
 	*)
-		_err "Unknown host: '$host'"
+		_err "Unknown host: '$HOST'"
 		exit 1
 		;;
 	esac
 
-	if $is_setup; then
-		"do_setup_${host}"
+	if [[ "$is_setup" == "true" ]]; then
+		"do_setup_${HOST}"
 	else
 		local passwd
 		passwd=$(get_random_str 32)
@@ -228,10 +263,12 @@ main() {
 		_info "Password for ar.sis: $passwd"
 
 		script_path=$(get_script_path)
-
 		_debug_vars "script_path"
 		# TODO: download the script
-		local cmd=("$script_path" "--host" "$host" "--setup")
+		local cmd=("$script_path" "--host" "$HOST" "--setup")
+		if [[ "$DEBUG" == "true" ]]; then
+			cmd+=("--debug")
+		fi
 		print_header "Run Script as $USERNAME"
 		sudo -u "$USERNAME" -- "${cmd[@]}"
 	fi

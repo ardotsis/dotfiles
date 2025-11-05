@@ -16,7 +16,7 @@ curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/
 curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh" | bash -s -- -h arch
 ```
 
-### `Windows`
+### `ardotsis@windows`
 
 ```batch
 (Placeholder)

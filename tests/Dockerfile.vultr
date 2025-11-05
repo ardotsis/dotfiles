@@ -8,8 +8,9 @@ RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y sudo openssh-server ca-certificates
 
-COPY ./dotfiles /dotfiles
 COPY ./install.sh /install.sh
+# Fetch dotfiles repository locally
+COPY . /dotfiles
 RUN chmod +x ./install.sh
 
 CMD ["bash", "-c", "./install.sh ${INSTALL_ARGS}"]
