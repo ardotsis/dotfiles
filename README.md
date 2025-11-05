@@ -1,4 +1,4 @@
-# ar.sis's dotfiles
+# ar.sis's dotfiles (WIP)
 
 _simple / minimal / secure / free / reproducible / efficient / unique / kawaii / menhera_
 
