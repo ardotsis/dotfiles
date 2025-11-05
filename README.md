@@ -1,7 +1,7 @@
 # ar.sis's dotfiles
 
 > [!WARNING]
-> This project is still work in progress. Please do not expect to work. Thank you 🩷
+> This project is still work in progress. So please do not expect to work. Thank you 🩷
 
 _simple / minimal / secure / free / reproducible / efficient / unique / kawaii / menhera_
 

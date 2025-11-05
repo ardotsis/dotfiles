@@ -131,6 +131,7 @@ fetch_config_path() {
 	local common_dir="$DOTFILES_DIR/dotfiles"
 
 	while IFS= read -r -d "" item; do
+		# Host configuration
 		if [[ $item == *.$HOST ]]; then
 			_debug_vars "item"
 			if [[ -f $item ]]; then
@@ -138,6 +139,8 @@ fetch_config_path() {
 			elif [[ -d $item ]]; then
 				echo "dir"
 			fi
+		else
+			echo ""
 		fi
 	done < <(find "$common_dir" -print0)
 }
