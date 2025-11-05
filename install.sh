@@ -45,12 +45,12 @@ _log() {
 	fi
 }
 
-_debug() {
+log_debug() {
 	local msg="$1"
 	_log "DEBUG" "$msg"
 }
 
-_debug_vars() {
+log_vars() {
 	local var_names=("$@")
 	local msg=""
 
@@ -66,17 +66,17 @@ _debug_vars() {
 	_log "DEBUG_VARS" "$msg"
 }
 
-_info() {
+log_info() {
 	local msg="$1"
 	_log "INFO" "$msg"
 }
 
-_warn() {
+log_warn() {
 	local msg="$1"
 	_log "WARN" "$msg"
 }
 
-_err() {
+log_error() {
 	local msg="$1"
 	_log "ERROR" "$msg"
 }
@@ -120,29 +120,29 @@ remove_package() {
 	fi
 }
 
-link_file() {
-	local actual="$1"
-	local dest="$2"
+read0() {
+	local assign_var="$1"
 
-	ln -s "$actual" "$dest"
+	IFS="" read -r -d "" "$assign_var"
+}
+
+find_depth_1() {
+	local dir_path="$1"
+
+	find "$dir_path" -maxdepth 1 -print0
 }
 
 fetch_config_path() {
-	local common_dir="$DOTFILES_DIR/dotfiles"
+	local common_dir="$DOTFILES_DIR/dotfiles/common"
+	local item
 
-	while IFS= read -r -d "" item; do
-		# Host configuration
-		if [[ $item == *.$HOST ]]; then
-			_debug_vars "item"
-			if [[ -f $item ]]; then
-				echo "file"
-			elif [[ -d $item ]]; then
-				echo "dir"
-			fi
+	while read0 "item"; do
+		if [[ $item == *."$HOST" ]]; then
+			echo "host item: $item"
 		else
-			echo ""
+			echo "common item: $item"
 		fi
-	done < <(find "$common_dir" -print0)
+	done < <(find_depth_1 "$common_dir")
 }
 
 add_ardotsis_chan() {
@@ -159,7 +159,7 @@ add_ardotsis_chan() {
 clone_dotfiles_repo() {
 	local from="$1"
 
-	_info "Clone dotfiles repository from $from..."
+	log_info "Clone dotfiles repository from $from..."
 	if [[ $from == "git" ]]; then
 		git clone -b main "$DOTFILES_REPO" $DOTFILES_DIR
 	elif [[ $from == "local" ]]; then
@@ -167,10 +167,10 @@ clone_dotfiles_repo() {
 		chown -R "$USERNAME:$USERNAME" "$DOTFILES_DIR"
 	fi
 }
+
 ##################################################
 #                   Installers                   #
 ##################################################
-
 do_setup_vultr() {
 	if is_cmd_exist ufw; then
 		print_header "Uninstall UFW"
@@ -196,17 +196,17 @@ do_setup_vultr() {
 }
 
 do_setup_arch() {
-	_err "do_setup_arch - Not implemented yet."
+	log_error "do_setup_arch - Not implemented yet."
 }
 
 main() {
-	_debug "Start main func"
-	_debug_vars "SUDO"
+	log_debug "Start main func"
+	log_vars "SUDO"
 
 	# Download install script and run locally
 	# if [[ -f "$0" ]]; then
 	# 	script_path="/var/tmp/install.sh"
-	# 	_info "Downloading install script..."
+	# 	log_info "Downloading install script..."
 	# 	curl -fsSL "$INSTALL_SCRIPT_URL" -o $script_path
 	# 	chmod +x $script_path
 	# 	$script_path "$@"
@@ -229,7 +229,7 @@ main() {
 			DEBUG="true"
 			;;
 		*)
-			_err "Unknown parameter: '$1'"
+			log_error "Unknown parameter: '$1'"
 			exit 1
 			;;
 		esac
@@ -237,11 +237,11 @@ main() {
 	done
 
 	if [[ -z $HOST ]]; then
-		_err "Please specify the host name using '--host (-h)' parameter."
+		log_error "Please specify the host name using '--host (-h)' parameter."
 		exit 1
 	fi
 
-	_debug_vars "HOST" "is_setup" "DEBUG"
+	log_vars "HOST" "is_setup" "DEBUG"
 
 	# Validate host
 	case "$HOST" in
@@ -252,7 +252,7 @@ main() {
 		OS="arch"
 		;;
 	*)
-		_err "Unknown host: '$HOST'"
+		log_error "Unknown host: '$HOST'"
 		exit 1
 		;;
 	esac
@@ -263,10 +263,10 @@ main() {
 		local passwd
 		passwd=$(get_random_str 32)
 		add_ardotsis_chan "$passwd"
-		_info "Password for ar.sis: $passwd"
+		log_info "Password for ar.sis: $passwd"
 
 		script_path=$(get_script_path)
-		_debug_vars "script_path"
+		log_vars "script_path"
 		# TODO: download the script
 		local cmd=("$script_path" "--host" "$HOST" "--setup")
 		if [[ "$DEBUG" == "true" ]]; then
