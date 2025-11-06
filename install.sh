@@ -203,15 +203,15 @@ main() {
 	log_debug "Start main func"
 	log_vars "SUDO"
 
-	# Download install script and run locally
-	# if [[ -f "$0" ]]; then
-	# 	script_path="/var/tmp/install.sh"
-	# 	log_info "Downloading install script..."
-	# 	curl -fsSL "$INSTALL_SCRIPT_URL" -o $script_path
-	# 	chmod +x $script_path
-	# 	$script_path "$@"
-	# 	exit 0
-	# fi
+	# Download install.sh and run locally
+	if [[ -f "$0" ]]; then
+		script_path="/var/tmp/install.sh"
+		log_info "Downloading install script..."
+		curl -fsSL "$INSTALL_SCRIPT_URL" -o $script_path
+		chmod +x $script_path
+		$script_path "$@"
+		exit 0
+	fi
 
 	# Parse arguments
 	local is_setup=false
