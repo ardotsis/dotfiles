@@ -38,11 +38,11 @@ if [[ -z "${HOST+x}" ]]; then
 fi
 
 if [[ -z "${IS_SETUP+x}" ]]; then
-	readonly IS_SETUP=false
+	readonly IS_SETUP="false"
 fi
 
 if [[ -z "${DEBUG+x}" ]]; then
-	readonly DEBUG=false
+	readonly DEBUG="false"
 fi
 
 # Validate host
@@ -60,8 +60,8 @@ arch)
 esac
 
 readonly COMMON_HOME_DIR="$DOTFILES_SRC_DIR/common"
-readonly HOST_HOME_DIR="$DOTFILES_SRC_DIR/$HOST"
-readonly HOST_SUFFIX=".$HOST"
+readonly HOST_HOME_DIR="$DOTFILES_SRC_DIR/hosts/$HOST"
+readonly HOST_PREFIX="${HOST^^}_"
 
 # Set sudo mode
 if [[ $(id -u) -eq 0 ]]; then
@@ -97,7 +97,7 @@ _log() {
 	timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
 
 	if [[ "$DEBUG" == "true" ]]; then
-		printf "[%s] [%s] %s\n" "$timestamp" "$level" "$msg"
+		printf "[%s] [%s] %s\n" "$timestamp" "$level" "$msg" >&2
 	fi
 }
 
@@ -182,19 +182,58 @@ read0() {
 	IFS="" read -r -d "" "$assign_var"
 }
 
-find_depth_1() {
+find_depth() {
 	local dir_path="$1"
+	local depth="$2"
 
-	find "$dir_path" -maxdepth 1 -print0
+	if [[ "$depth" -eq 0 ]]; then
+		log_debug "Scan the directory recursively"
+		find "$dir_path" -print0
+	else
+		log_debug "Scan the $depth depth of the directory"
+		find "$dir_path" -maxdepth "$depth" -print0
+	fi
+}
+
+convert_to_host_path() {
+	local common_path="$1"
+	local add_prefix="${2+false}"
+
+	local converted
+	converted=$(printf "%s" "$common_path" | sed "s|^$COMMON_HOME_DIR|$HOST_HOME_DIR|")
+
+	if [[ "$add_prefix" == "true" ]]; then
+		local dirname_="${converted%/*}"
+		local basename_="${converted##*/}"
+		local converted_with_prefix="${dirname_}/${HOST_PREFIX}${basename_}"
+		printf "%s" "$converted_with_prefix"
+	else
+		printf "%s" "$converted"
+	fi
 }
 
 fetch_config_path() {
-	# 	local basename=${item##*/}
-	# if [[ $item == *."$HOST" ]]; then
+	local item
+	local host_items=()
 
+	# TODO: Warn and ignore if prefixed FILE IN prefixed DIRECTORY
+
+	# Host
 	while read0 "item"; do
-		log_vars "item"
-	done < <(find_depth_1 "$COMMON_HOME_DIR")
+		local basename_="${item##*/}"
+		if [[ "$basename_" == "$HOST_PREFIX"* ]]; then
+			log_vars "item"
+			host_items+=("$item")
+		fi
+	done < <(find_depth "$HOST_HOME_DIR" 0)
+
+	# Common
+	local generated_host_path
+	while read0 "item"; do
+		generated_host_path="$(convert_to_host_path "$item" "true")"
+		log_vars "generated_host_path"
+	done < <(find_depth "$COMMON_HOME_DIR" 1)
+
 }
 
 add_ardotsis_chan() {
@@ -230,10 +269,10 @@ do_setup_vultr() {
 		remove_package "ufw"
 	fi
 
-	if ! is_cmd_exist git; then
-		print_header "Install Git"
-		install_package "git"
-	fi
+	# if ! is_cmd_exist git; then
+	# 	print_header "Install Git"
+	# 	install_package "git"
+	# fi
 
 	print_header "Clone Dotfiles Repository"
 	if [[ "$DEBUG" == "true" ]]; then
@@ -251,26 +290,32 @@ do_setup_arch() {
 
 main() {
 	log_info "Start installation..."
+
+	log_vars "USERNAME" "DOTFILES_DIR" "DOTFILES_SRC_DIR"
+	log_vars "COMMON_HOME_DIR" "HOST_HOME_DIR" "HOST_PREFIX"
 	log_vars "HOST" "IS_SETUP" "DEBUG" "SUDO" "OS"
 
 	if [[ "$IS_SETUP" == "true" ]]; then
 		"do_setup_${HOST}"
 	else
 		local passwd
-
 		passwd=$(get_random_str 32)
 		add_ardotsis_chan "$passwd"
-		log_info "Password for ar.sis: $passwd"
+		echo "Password for ar.sis: $passwd"
 
 		script_path=$(get_script_path)
 		log_vars "script_path"
-		local cmd=("$script_path" "--host" "$HOST" "--setup")
-		if [[ "$DEBUG" == "true" ]]; then
-			cmd+=("--debug")
-		fi
+
+		cmd=(
+			"$script_path"
+			"--host"
+			"$HOST"
+			"--setup"
+			"$([[ "$DEBUG" == "true" ]] && printf "%s" "--debug")"
+		)
 		print_header "Run Script as $USERNAME"
 		sudo -u "$USERNAME" -- "${cmd[@]}"
 	fi
 }
 
-main "$@"
+main
