@@ -4,20 +4,68 @@ set -e -u -o pipefail -C
 ##################################################
 #                 Configurations                 #
 ##################################################
-DEBUG="false"
-OS=""
-HOST=""
+# Paths
 readonly USERNAME="ardotsis"
 readonly DOTFILES_DIR="/home/$USERNAME/.dotfiles"
+readonly DOTFILES_SRC_DIR="$DOTFILES_DIR/dotfiles"
+readonly COMMON_HOME_DIR="$DOTFILES_SRC_DIR/common"
+readonly DEBUG_DOTFILES_DATA="/dotfiles"
 readonly DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
-readonly LOCAL_DOTFILES_REPO="/dotfiles"
 readonly INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
+
+# Parse script parameters
+while (("$#")); do
+	case "$1" in
+	-h | --host)
+		readonly HOST="$2"
+		shift
+		;;
+	-s | --setup)
+		readonly IS_SETUP="true"
+		;;
+	-d | --debug)
+		readonly DEBUG="true"
+		;;
+	*)
+		printf "Unknown parameter: '%s'" "$1"
+		exit 1
+		;;
+	esac
+	shift
+done
+
+if [[ -z "${HOST+x}" ]]; then
+	printf "Please specify the host name using '--host (-h)' parameter."
+	exit 1
+fi
+
+if [[ -z "${IS_SETUP+x}" ]]; then
+	readonly IS_SETUP=false
+fi
+
+if [[ -z "${DEBUG+x}" ]]; then
+	readonly DEBUG=false
+fi
 
 if [[ $(id -u) -eq 0 ]]; then
 	readonly SUDO=""
 else
 	readonly SUDO="sudo"
 fi
+
+# Validate host
+case "$HOST" in
+vultr)
+	readonly OS="debian"
+	;;
+arch)
+	readonly OS="arch"
+	;;
+*)
+	printf "Unknown host: '%s'" "$HOST"
+	exit 1
+	;;
+esac
 
 ##################################################
 #                Common Functions                #
@@ -133,16 +181,38 @@ find_depth_1() {
 }
 
 fetch_config_path() {
-	local common_dir="$DOTFILES_DIR/dotfiles/common"
+	# local common_dir="$DOTFILES_DIR/dotfiles/common"
+	# local host_dir="$DOTFILES_DIR/dotfiles/host/$HOST"
 	local item
+	local basename
+
+	# scan common directory and save paths
+	# include host's exceptions
+
+	# has_host() {
+	# 	local $item="$1"
+	# 	local basename=${item##*/}
+
+	# 	if [[ -f "$host_dir/$basename"  ]]
+	# }
 
 	while read0 "item"; do
-		if [[ $item == *."$HOST" ]]; then
-			echo "host item: $item"
-		else
-			echo "common item: $item"
+		basename=${item##*/}
+		log_vars "basename"
+
+		if [[ -f $item ]]; then
+
+			echo "file"
+		elif [[ -d $item ]]; then
+			echo "dir"
 		fi
-	done < <(find_depth_1 "$common_dir")
+
+		# if [[ $item == *."$HOST" ]]; then
+		# 	echo "host item: $item"
+		# else
+		# 	echo "common item: $item"
+		# fi
+	done < <(find_depth_1 "$COMMON_HOME_DIR")
 }
 
 add_ardotsis_chan() {
@@ -163,7 +233,7 @@ clone_dotfiles_repo() {
 	if [[ $from == "git" ]]; then
 		git clone -b main "$DOTFILES_REPO" $DOTFILES_DIR
 	elif [[ $from == "local" ]]; then
-		cp -r "$LOCAL_DOTFILES_REPO" "$DOTFILES_DIR"
+		cp -r "$DEBUG_DOTFILES_DATA" "$DOTFILES_DIR"
 		chown -R "$USERNAME:$USERNAME" "$DOTFILES_DIR"
 	fi
 }
@@ -204,60 +274,23 @@ main() {
 	log_vars "SUDO"
 
 	# Download install.sh and run locally
-	if [[ -f "$0" ]]; then
-		script_path="/var/tmp/install.sh"
-		log_info "Downloading install script..."
-		curl -fsSL "$INSTALL_SCRIPT_URL" -o $script_path
-		chmod +x $script_path
-		$script_path "$@"
-		exit 0
-	fi
-
-	# Parse arguments
-	local is_setup=false
-
-	while (("$#")); do
-		case "$1" in
-		-h | --host)
-			HOST="$2"
-			shift
-			;;
-		-s | --setup)
-			is_setup="true"
-			;;
-		-d | --debug)
-			DEBUG="true"
-			;;
-		*)
-			log_error "Unknown parameter: '$1'"
-			exit 1
-			;;
-		esac
-		shift
-	done
+	# if [[ -f "$0" ]]; then
+	# 	script_path="/var/tmp/install.sh"
+	# 	log_info "Downloading install script..."
+	# 	curl -fsSL "$INSTALL_SCRIPT_URL" -o $script_path
+	# 	chmod +x $script_path
+	# 	$script_path "$@"
+	# 	exit 0
+	# fi
 
 	if [[ -z $HOST ]]; then
 		log_error "Please specify the host name using '--host (-h)' parameter."
 		exit 1
 	fi
 
-	log_vars "HOST" "is_setup" "DEBUG"
+	log_vars "HOST" "IS_SETUP" "DEBUG"
 
-	# Validate host
-	case "$HOST" in
-	vultr)
-		OS="debian"
-		;;
-	arch)
-		OS="arch"
-		;;
-	*)
-		log_error "Unknown host: '$HOST'"
-		exit 1
-		;;
-	esac
-
-	if [[ "$is_setup" == "true" ]]; then
+	if [[ "$IS_SETUP" == "true" ]]; then
 		"do_setup_${HOST}"
 	else
 		local passwd
