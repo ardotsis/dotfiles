@@ -197,7 +197,7 @@ find_depth() {
 
 convert_to_host_path() {
 	local common_path="$1"
-	local add_prefix="${2+false}"
+	local add_prefix="$2"
 
 	local converted
 	converted=$(printf "%s" "$common_path" | sed "s|^$COMMON_HOME_DIR|$HOST_HOME_DIR|")
@@ -305,7 +305,6 @@ main() {
 
 		script_path=$(get_script_path)
 		log_vars "script_path"
-
 		cmd=(
 			"$script_path"
 			"--host"
@@ -313,6 +312,7 @@ main() {
 			"--setup"
 			"$([[ "$DEBUG" == "true" ]] && printf "%s" "--debug")"
 		)
+
 		print_header "Run Script as $USERNAME"
 		sudo -u "$USERNAME" -- "${cmd[@]}"
 	fi
