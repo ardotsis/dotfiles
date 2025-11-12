@@ -5,8 +5,10 @@ set -e -u -o pipefail -C
 #                 Configurations                 #
 ##################################################
 readonly USERNAME="ardotsis"
-readonly DOTFILES_DIR="/home/$USERNAME/.dotfiles"
+readonly HOME_DIR="/home/$USERNAME"
+readonly DOTFILES_DIR="$HOME_DIR/.dotfiles"
 readonly DOTFILES_SRC_DIR="$DOTFILES_DIR/dotfiles"
+readonly COMMON_DIR="$DOTFILES_SRC_DIR/common"
 readonly DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
 readonly DOTFILES_LOCAL_REPO="/dotfiles"
 readonly DOTFILES_INSTALLER_URL="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
@@ -14,14 +16,14 @@ readonly DOTFILES_INSTALLER_URL="https://raw.githubusercontent.com/ardotsis/dotf
 # Parse script parameters
 while (("$#")); do
 	case "$1" in
-	-h | --host)
+	"-h" | "--host")
 		readonly HOST="$2"
 		shift
 		;;
-	-s | --setup)
+	"-s" | "--setup")
 		readonly IS_SETUP="true"
 		;;
-	-d | --debug)
+	"-d" | "--debug")
 		readonly DEBUG="true"
 		;;
 	*)
@@ -59,8 +61,7 @@ arch)
 	;;
 esac
 
-readonly COMMON_HOME_DIR="$DOTFILES_SRC_DIR/common"
-readonly HOST_HOME_DIR="$DOTFILES_SRC_DIR/hosts/$HOST"
+readonly HOST_DIR="$DOTFILES_SRC_DIR/hosts/$HOST"
 readonly HOST_PREFIX="${HOST^^}_"
 
 # Set sudo mode
@@ -97,7 +98,7 @@ _log() {
 	timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
 
 	if [[ "$DEBUG" == "true" ]]; then
-		printf "[%s] [%s] %s\n" "$timestamp" "$level" "$msg" >&2
+		printf "[%s] [%s] [%s] %s\n" "$timestamp" "$level" "${FUNCNAME[2]}" "$msg" >&2
 	fi
 }
 
@@ -154,6 +155,7 @@ is_cmd_exist() {
 get_random_str() {
 	local length="$1"
 
+	# Use printf to flush buffer forcefully
 	printf "%s" "$(tr -dc "A-Za-z0-9!?%=" </dev/urandom | head -c "$length")"
 }
 
@@ -176,64 +178,126 @@ remove_package() {
 	fi
 }
 
-read0() {
-	local assign_var="$1"
+get_home_type() {
+	local path="$1"
 
-	IFS="" read -r -d "" "$assign_var"
-}
-
-find_depth() {
-	local dir_path="$1"
-	local depth="$2"
-
-	if [[ "$depth" -eq 0 ]]; then
-		log_debug "Scan the directory recursively"
-		find "$dir_path" -print0
+	if [[ "$path" == "$COMMON_DIR"* ]]; then
+		printf "COMMON"
+	elif [[ "$path" == "$HOST_DIR"* ]]; then
+		printf "HOST"
+	elif [[ "$path" == "$HOME_DIR"* ]]; then
+		printf "HOME"
 	else
-		log_debug "Scan the $depth depth of the directory"
-		find "$dir_path" -maxdepth "$depth" -print0
+		log_error "Unknown home type for path: $path"
+		exit 1
 	fi
 }
 
-convert_to_host_path() {
-	local common_path="$1"
-	local add_prefix="$2"
+convert_home_path() {
+	local original_path="$1"
+	local to="$2"
 
-	local converted
-	converted=$(printf "%s" "$common_path" | sed "s|^$COMMON_HOME_DIR|$HOST_HOME_DIR|")
+	local from
+	from=$(get_home_type "$original_path")
+	local from_var="${from}_DIR"
+	local to_var="${to^^}_DIR"
 
-	if [[ "$add_prefix" == "true" ]]; then
-		local dirname_="${converted%/*}"
-		local basename_="${converted##*/}"
-		local converted_with_prefix="${dirname_}/${HOST_PREFIX}${basename_}"
-		printf "%s" "$converted_with_prefix"
-	else
-		printf "%s" "$converted"
-	fi
+	# Bash parameter substitution (without sed)
+	printf "%s" "${original_path/#${!from_var}/${!to_var}}"
 }
 
-fetch_config_path() {
-	local item
-	local host_items=()
+merge_home() {
+	# Do NOT use double quotes with -d options to preserve null character
+	local a_home_dir="$1"
 
-	# TODO: Warn and ignore if prefixed FILE IN prefixed DIRECTORY
+	# Get each home directories
+	local a_host_dir a_common_dir
+	a_host_dir="$(convert_home_path "$a_home_dir" "host")"
+	a_common_dir="$(convert_home_path "$a_home_dir" "common")"
+	log_vars "a_home_dir" "a_host_dir" "a_common_dir"
 
-	# Host
-	while read0 "item"; do
-		local basename_="${item##*/}"
+	get_pure_items() {
+		local dir_path="$1"
+
+		local home_type
+		home_type=$(get_home_type "$dir_path")
+		local dir_var="${home_type}_DIR"
+
+		find "$dir_path" -mindepth 1 -maxdepth 1 -print0 | while IFS="" read -r -d $'\0' item; do
+			printf "%s\0" "${item#"${!dir_var}"/}"
+		done
+	}
+
+	local a_host_items=() a_common_items=()
+	mapfile -d $'\0' a_host_items < <(get_pure_items "$a_host_dir")
+	mapfile -d $'\0' a_common_items < <(get_pure_items "$a_common_dir")
+	log_vars "a_host_items[@]" "a_common_items[@]"
+
+	# Remove host prefixed items from common items
+	for h_i in "${!a_host_items[@]}"; do
+		local path="${a_host_items[$h_i]}"
+		local dirname_="${path%/*}"
+		local basename_="${path##*/}"
 		if [[ "$basename_" == "$HOST_PREFIX"* ]]; then
-			log_vars "item"
-			host_items+=("$item")
+			for c_i in "${!a_common_items[@]}"; do
+				if [[ "${a_common_items[$c_i]}" == "${dirname_}/${basename_#"${HOST_PREFIX}"}" ]]; then
+					log_debug "Remove host prefixed item from common items: '${a_common_items[$c_i]}'"
+					unset "a_common_items[$c_i]"
+					break
+				fi
+			done
 		fi
-	done < <(find_depth "$HOST_HOME_DIR" 0)
+	done
 
-	# Common
-	local generated_host_path
-	while read0 "item"; do
-		generated_host_path="$(convert_to_host_path "$item" "true")"
-		log_vars "generated_host_path"
-	done < <(find_depth "$COMMON_HOME_DIR" 1)
+	set() {
+		# TODO: How name reference works in bash?
+		local -n arr_ref="$1"
+		local mode="$2"
 
+		mapfile -d $'\0' "${!arr_ref}" < <(comm "$mode" -z \
+			<(printf "%s\0" "${a_host_items[@]}" | sort -z) \
+			<(printf "%s\0" "${a_common_items[@]}" | sort -z))
+	}
+
+	local union_items=() host_items=() common_items=()
+	set "union_items" "-12"
+	set "host_items" "-23"
+	set "common_items" "-13"
+	log_vars "union_items[@]" "common_items[@]" "host_items[@]"
+
+	# Host prefixed items always in $host_items
+	for item_type in "union" "host" "common"; do
+		local -n items="${item_type}_items"
+		for item in "${items[@]}"; do
+			local as_home_item="${a_home_dir}/${item}"
+			local as_common_item="${a_common_dir}/${item}"
+			local as_host_item="${a_host_dir}/${item}"
+
+			if [[ "$item_type" == "union" ]]; then
+				local actual_var="as_host_item"
+			else
+				local actual_var="as_${item_type}_item"
+			fi
+
+			local actual="${!actual_var}"
+			log_vars "item_type" "item" "as_home_item" "actual"
+
+			if [[ -f "$actual" ]]; then
+				log_info "Link $item_type file: $actual -> $as_home_item"
+				ln -sf "$actual" "$as_home_item"
+			elif [[ -d "$actual" ]]; then
+				log_info "Create directory: '$as_home_item'"
+				mkdir -p "$as_home_item"
+				if [[ "$item_type" == "union" ]]; then
+					printf "\0"
+				elif [[ "$item_type" == "host" ]]; then
+					printf "\0"
+				elif [[ "$item_type" == "common" ]]; then
+					printf "\0"
+				fi
+			fi
+		done
+	done
 }
 
 add_ardotsis_chan() {
@@ -281,7 +345,7 @@ do_setup_vultr() {
 		clone_dotfiles_repo "git"
 	fi
 
-	fetch_config_path
+	merge_home "$HOME_DIR"
 }
 
 do_setup_arch() {
@@ -291,9 +355,10 @@ do_setup_arch() {
 main() {
 	log_info "Start installation..."
 
-	log_vars "USERNAME" "DOTFILES_DIR" "DOTFILES_SRC_DIR"
-	log_vars "COMMON_HOME_DIR" "HOST_HOME_DIR" "HOST_PREFIX"
-	log_vars "HOST" "IS_SETUP" "DEBUG" "SUDO" "OS"
+	log_vars \
+		"USERNAME" "DOTFILES_DIR" "DOTFILES_SRC_DIR" \
+		"COMMON_DIR" "HOST_DIR" "HOST_PREFIX" \
+		"HOST" "IS_SETUP" "DEBUG" "SUDO" "OS"
 
 	if [[ "$IS_SETUP" == "true" ]]; then
 		"do_setup_${HOST}"

@@ -39,6 +39,7 @@
   "files.eol": "\n",
   // github.copilot.editor.enableCodeActions: https://github.com/microsoft/vscode-copilot-release/issues/735#issuecomment-1886589021
   "github.copilot.editor.enableCodeActions": false,
+  "inlineChat.lineNaturalLanguageHint": false,
   "telemetry.feedback.enabled": false,
   "vscode-neovim.compositeKeys": {
     "jj": {

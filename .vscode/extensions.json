@@ -6,6 +6,8 @@
     "esbenp.prettier-vscode",
     "streetsidesoftware.code-spell-checker",
     "richie5um2.vscode-sort-json",
-    "formulahendry.code-runner"
+    "formulahendry.code-runner",
+    "mkhl.shfmt",
+    "mads-hartmann.bash-ide-vscode"
   ]
 }
