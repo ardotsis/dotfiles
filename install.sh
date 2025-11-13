@@ -111,8 +111,12 @@ log_vars() {
 	local var_names=("$@")
 	local msg=""
 
+	local COLOR_NAME="\033[1;34m"
+	local COLOR_VALUE="\033[1;32m"
+	local COLOR_RESET="\033[0m"
+
 	for var_name in "${var_names[@]}"; do
-		fmt="\$$var_name='${!var_name}'"
+		fmt="${COLOR_NAME}\$$var_name${COLOR_RESET}='${COLOR_VALUE}${!var_name}${COLOR_RESET}'"
 		if [[ -z $msg ]]; then
 			msg="$fmt"
 		else
@@ -288,7 +292,7 @@ do_link() {
 			fi
 
 			local actual="${!actual_var}"
-			log_vars "item_type" "item" "as_home_item" "actual"
+			log_vars "item_type" "item" "as_home_item" "as_common_item" "as_host_item" "actual"
 			if [[ -f "$actual" ]]; then
 				log_info "Link ${item_type^^} file: $actual -> $as_home_item"
 				ln -sf "$actual" "$as_home_item"
@@ -301,12 +305,11 @@ do_link() {
 				else
 					do_link "$as_home_item"
 				fi
-				ls -la "$as_home_item"
 			fi
 		done
 	done
 
-	tree
+	tree "$HOME_DIR/.config"
 }
 
 add_ardotsis_chan() {
@@ -316,7 +319,7 @@ add_ardotsis_chan() {
 	if [[ "$OS" == "debian" ]]; then
 		$SUDO useradd -m -s "/bin/bash" -G "sudo" "$USERNAME"
 		printf "%s:%s" "$USERNAME" "$passwd" | $SUDO chpasswd
-		printf "%s ALL=(ALL) NOPASSWD: ALL\n" $USERNAME >/etc/sudoers.d/$USERNAME
+		printf "%s ALL=(ALL) NOPASSWD: ALL\n" "$USERNAME" >"/etc/sudoers.d/$USERNAME"
 	fi
 }
 
