@@ -209,8 +209,9 @@ convert_home_path() {
 merge_home() {
 	# Do NOT use double quotes with -d options to preserve null character
 	local a_home_dir="$1"
+	local is_host_exclusive_dir="${2-false}"
 
-	# Get each home directories
+	# Generate each home directories
 	local a_host_dir a_common_dir
 	a_host_dir="$(convert_home_path "$a_home_dir" "host")"
 	a_common_dir="$(convert_home_path "$a_home_dir" "common")"
@@ -228,26 +229,30 @@ merge_home() {
 		done
 	}
 
-	local a_host_items=() a_common_items=()
+	local a_host_items=()
 	mapfile -d $'\0' a_host_items < <(get_pure_items "$a_host_dir")
-	mapfile -d $'\0' a_common_items < <(get_pure_items "$a_common_dir")
-	log_vars "a_host_items[@]" "a_common_items[@]"
 
+	local a_common_items=()
 	# Remove host prefixed items from common items
-	for h_i in "${!a_host_items[@]}"; do
-		local path="${a_host_items[$h_i]}"
-		local dirname_="${path%/*}"
-		local basename_="${path##*/}"
-		if [[ "$basename_" == "$HOST_PREFIX"* ]]; then
-			for c_i in "${!a_common_items[@]}"; do
-				if [[ "${a_common_items[$c_i]}" == "${dirname_}/${basename_#"${HOST_PREFIX}"}" ]]; then
-					log_debug "Remove host prefixed item from common items: '${a_common_items[$c_i]}'"
-					unset "a_common_items[$c_i]"
-					break
-				fi
-			done
-		fi
-	done
+	if [[ "$is_host_exclusive_dir" == "false" ]]; then
+		mapfile -d $'\0' a_common_items < <(get_pure_items "$a_common_dir")
+
+		for h_i in "${!a_host_items[@]}"; do
+			local path="${a_host_items[$h_i]}"
+			local dirname_="${path%/*}"
+			local basename_="${path##*/}"
+			if [[ "$basename_" == "$HOST_PREFIX"* ]]; then
+				for c_i in "${!a_common_items[@]}"; do
+					if [[ "${a_common_items[$c_i]}" == "${dirname_}/${basename_#"${HOST_PREFIX}"}" ]]; then
+						log_debug "Remove host prefixed item from common items: '${a_common_items[$c_i]}'"
+						unset "a_common_items[$c_i]"
+						break
+					fi
+				done
+			fi
+		done
+	fi
+	log_vars "a_host_items[@]" "a_common_items[@]"
 
 	set() {
 		# TODO: How name reference works in bash?
@@ -270,7 +275,9 @@ merge_home() {
 		local -n items="${item_type}_items"
 		for item in "${items[@]}"; do
 			local as_home_item="${a_home_dir}/${item}"
+			# shellcheck disable=SC2034
 			local as_common_item="${a_common_dir}/${item}"
+			# shellcheck disable=SC2034
 			local as_host_item="${a_host_dir}/${item}"
 
 			if [[ "$item_type" == "union" ]]; then
@@ -281,20 +288,19 @@ merge_home() {
 
 			local actual="${!actual_var}"
 			log_vars "item_type" "item" "as_home_item" "actual"
-
 			if [[ -f "$actual" ]]; then
-				log_info "Link $item_type file: $actual -> $as_home_item"
+				log_info "Link ${item_type^^} file: $actual -> $as_home_item"
 				ln -sf "$actual" "$as_home_item"
 			elif [[ -d "$actual" ]]; then
 				log_info "Create directory: '$as_home_item'"
 				mkdir -p "$as_home_item"
-				if [[ "$item_type" == "union" ]]; then
-					printf "\0"
-				elif [[ "$item_type" == "host" ]]; then
-					printf "\0"
-				elif [[ "$item_type" == "common" ]]; then
-					printf "\0"
+
+				if [[ "$item_type" == "host" ]]; then
+					merge_home "$as_home_item" "true"
+				else
+					merge_home "$as_home_item"
 				fi
+				ls -la "$as_home_item"
 			fi
 		done
 	done
