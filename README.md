@@ -21,12 +21,12 @@ curl -fsSL "dotfiles.menhera.art" | bash -s -- -h arch
 
 ### `ardotsis@windows`
 
-> [!NOTE]
-> Original URL: ```https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh```
-
 ```batch
 (Placeholder)
 ```
+
+> [!NOTE]
+> Original URL: ```https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh```
 
 ## Shortcut Keys
 
