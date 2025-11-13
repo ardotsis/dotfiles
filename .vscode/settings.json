@@ -14,6 +14,9 @@
   "[markdown]": {
     "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
   },
+  "[shellscript]": {
+    "editor.defaultFormatter": "mkhl.shfmt"
+  },
   "code-runner.executorMap": {
     "shellscript": "  & \"C:\\Program Files\\Git\\bin\\bash.exe\""
   },
@@ -40,8 +43,18 @@
   "files.eol": "\n",
   // github.copilot.editor.enableCodeActions: https://github.com/microsoft/vscode-copilot-release/issues/735#issuecomment-1886589021
   "github.copilot.editor.enableCodeActions": false,
+  "github.copilot.enable": {
+    "*": false,
+    "markdown": false,
+    "plaintext": false,
+    "scminput": false,
+    "shellscript": false
+  },
   "inlineChat.lineNaturalLanguageHint": false,
   "telemetry.feedback.enabled": false,
+  "terminal.integrated.enableMultiLinePasteWarning": "never",
+  "terminal.integrated.stickyScroll.enabled": false,
+  "terminal.integrated.tabs.enabled": false,
   "vscode-neovim.compositeKeys": {
     "jj": {
       "command": "vscode-neovim.escape"

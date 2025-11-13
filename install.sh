@@ -209,7 +209,8 @@ convert_home_path() {
 do_link() {
 	# Do NOT use double quotes with -d options to preserve null character
 	local a_home_dir="$1"
-	local is_host_exclusive_dir="${2-false}"
+	local dir_type="${2:-}"
+	log_vars "dir_type"
 
 	# Generate each home directories
 	local a_host_dir a_common_dir
@@ -217,17 +218,27 @@ do_link() {
 	a_common_dir="$(convert_home_path "$a_home_dir" "common")"
 	log_vars "a_home_dir" "a_host_dir" "a_common_dir"
 
-	get_pure_items() {
+	map_dir_items() {
 		local dir_path="$1"
-		find "$dir_path" -mindepth 1 -maxdepth 1 -printf "%f\0"
+		local -n arr_ref="$2"
+
+		mapfile -d $'\0' "${!arr_ref}" < \
+			<(find "$dir_path" -mindepth 1 -maxdepth 1 -printf "%f\0")
 	}
 
-	local a_host_items=()
-	mapfile -d $'\0' a_host_items < <(get_pure_items "$a_host_dir")
-
-	local a_common_items=()
-	if [[ "$is_host_exclusive_dir" == "false" ]]; then
-		mapfile -d $'\0' a_common_items < <(get_pure_items "$a_common_dir")
+	local a_host_items=() a_common_items=()
+	if [[ -n "$dir_type" ]]; then
+		# if UNION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		# if UNION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		# if UNION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		# if UNION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		# if UNION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		# if UNION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		local a_dir_var="a_${dir_type}_dir"
+		map_dir_items "${!a_dir_var}" "a_${dir_type}_items"
+	else
+		map_dir_items "$a_host_dir" "a_host_items"
+		map_dir_items "$a_common_dir" "a_common_items"
 
 		# Remove host prefixed items from common items
 		for h_i in "${!a_host_items[@]}"; do
@@ -245,6 +256,7 @@ do_link() {
 			fi
 		done
 	fi
+
 	log_vars "a_host_items[@]" "a_common_items[@]"
 
 	set() {
@@ -275,13 +287,13 @@ do_link() {
 			local as_host_item="${a_host_dir}/${item}"
 
 			if [[ "$item_type" == "union" ]]; then
-				local actual_var="as_host_item"
+				local as_var="as_host_item"
 			else
-				local actual_var="as_${item_type}_item"
+				local as_var="as_${item_type}_item"
 			fi
+			local actual="${!as_var}"
 
-			local actual="${!actual_var}"
-			log_vars "item_type" "item" "actual"
+			log_vars "item_type" "item" "as_var" "actual"
 			if [[ -f "$actual" ]]; then
 				log_info "Link ${item_type^^} file: $actual -> $as_home_item"
 				ln -sf "$actual" "$as_home_item"
@@ -290,10 +302,14 @@ do_link() {
 				mkdir -p "$as_home_item"
 
 				if [[ "$item_type" == "host" ]]; then
-					do_link "$as_home_item" "true"
-				else
-					do_link "$as_home_item"
+					echo "todo: rename link dst: VULTR_nvim -> nvim"
 				fi
+
+				if [[ "$item_type" == "union" ]]; then
+					do_link "$as_home_item" "host"
+				fi
+
+				do_link "$as_home_item" "$item_type"
 			fi
 		done
 	done
@@ -334,10 +350,10 @@ do_setup_vultr() {
 		remove_package "ufw"
 	fi
 
-	if ! is_cmd_exist git; then
-		print_header "Install Git"
-		install_package "git"
-	fi
+	# if ! is_cmd_exist git; then
+	# 	print_header "Install Git"
+	# 	install_package "git"
+	# fi
 
 	print_header "Clone Dotfiles Repository"
 	if [[ "$DEBUG" == "true" ]]; then
