@@ -219,14 +219,7 @@ do_link() {
 
 	get_pure_items() {
 		local dir_path="$1"
-
-		local home_type
-		home_type=$(get_home_type "$dir_path")
-		local dir_var="${home_type}_DIR"
-
-		find "$dir_path" -mindepth 1 -maxdepth 1 -print0 | while IFS="" read -r -d $'\0' item; do
-			printf "%s\0" "${item#"${!dir_var}"/}"
-		done
+		find "$dir_path" -mindepth 1 -maxdepth 1 -printf "%f\0"
 	}
 
 	local a_host_items=()
