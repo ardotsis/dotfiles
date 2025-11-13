@@ -10,16 +10,19 @@ _simple / minimal / suckless / secure / free / reproducible / efficient / unique
 ### `ardotsis@vultr`
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh" | bash -s -- -h vultr
+curl -fsSL "dotfiles.menhera.art" | bash -s -- -h vultr
 ```
 
 ### `ardotsis@arch`
 
 ```sh
-curl -fsSL "https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh" | bash -s -- -h arch
+curl -fsSL "dotfiles.menhera.art" | bash -s -- -h arch
 ```
 
 ### `ardotsis@windows`
+
+> [!NOTE]
+> Original URL: ```https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh```
 
 ```batch
 (Placeholder)

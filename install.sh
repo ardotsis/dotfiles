@@ -206,7 +206,7 @@ convert_home_path() {
 	printf "%s" "${original_path/#${!from_var}/${!to_var}}"
 }
 
-merge_home() {
+do_link() {
 	# Do NOT use double quotes with -d options to preserve null character
 	local a_home_dir="$1"
 	local is_host_exclusive_dir="${2-false}"
@@ -233,10 +233,10 @@ merge_home() {
 	mapfile -d $'\0' a_host_items < <(get_pure_items "$a_host_dir")
 
 	local a_common_items=()
-	# Remove host prefixed items from common items
 	if [[ "$is_host_exclusive_dir" == "false" ]]; then
 		mapfile -d $'\0' a_common_items < <(get_pure_items "$a_common_dir")
 
+		# Remove host prefixed items from common items
 		for h_i in "${!a_host_items[@]}"; do
 			local path="${a_host_items[$h_i]}"
 			local dirname_="${path%/*}"
@@ -264,6 +264,7 @@ merge_home() {
 			<(printf "%s\0" "${a_common_items[@]}" | sort -z))
 	}
 
+	# shellcheck disable=SC2034
 	local union_items=() host_items=() common_items=()
 	set "union_items" "-12"
 	set "host_items" "-23"
@@ -296,14 +297,16 @@ merge_home() {
 				mkdir -p "$as_home_item"
 
 				if [[ "$item_type" == "host" ]]; then
-					merge_home "$as_home_item" "true"
+					do_link "$as_home_item" "true"
 				else
-					merge_home "$as_home_item"
+					do_link "$as_home_item"
 				fi
 				ls -la "$as_home_item"
 			fi
 		done
 	done
+
+	tree
 }
 
 add_ardotsis_chan() {
@@ -339,10 +342,10 @@ do_setup_vultr() {
 		remove_package "ufw"
 	fi
 
-	# if ! is_cmd_exist git; then
-	# 	print_header "Install Git"
-	# 	install_package "git"
-	# fi
+	if ! is_cmd_exist git; then
+		print_header "Install Git"
+		install_package "git"
+	fi
 
 	print_header "Clone Dotfiles Repository"
 	if [[ "$DEBUG" == "true" ]]; then
@@ -351,7 +354,7 @@ do_setup_vultr() {
 		clone_dotfiles_repo "git"
 	fi
 
-	merge_home "$HOME_DIR"
+	do_link "$HOME_DIR"
 }
 
 do_setup_arch() {
