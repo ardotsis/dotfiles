@@ -111,12 +111,8 @@ log_vars() {
 	local var_names=("$@")
 	local msg=""
 
-	local COLOR_NAME="\033[1;34m"
-	local COLOR_VALUE="\033[1;32m"
-	local COLOR_RESET="\033[0m"
-
 	for var_name in "${var_names[@]}"; do
-		fmt="${COLOR_NAME}\$$var_name${COLOR_RESET}='${COLOR_VALUE}${!var_name}${COLOR_RESET}'"
+		fmt="\$$var_name='${!var_name}'"
 		if [[ -z $msg ]]; then
 			msg="$fmt"
 		else
