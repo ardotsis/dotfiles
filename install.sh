@@ -281,7 +281,7 @@ do_link() {
 			fi
 
 			local actual="${!actual_var}"
-			log_vars "item_type" "item" "as_home_item" "as_common_item" "as_host_item" "actual"
+			log_vars "item_type" "item" "actual"
 			if [[ -f "$actual" ]]; then
 				log_info "Link ${item_type^^} file: $actual -> $as_home_item"
 				ln -sf "$actual" "$as_home_item"
