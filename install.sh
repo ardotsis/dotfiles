@@ -237,12 +237,11 @@ do_link() {
 		# Remove host prefixed items from common items
 		for h_i in "${!a_host_items[@]}"; do
 			local path="${a_host_items[$h_i]}"
-			local dirname_="${path%/*}"
 			local basename_="${path##*/}"
 			if [[ "$basename_" == "$HOST_PREFIX"* ]]; then
 				for c_i in "${!a_common_items[@]}"; do
-					if [[ "${a_common_items[$c_i]}" == "${dirname_}/${basename_#"${HOST_PREFIX}"}" ]]; then
-						log_debug "Remove host prefixed item from common items: '${a_common_items[$c_i]}'"
+					if [[ "${a_common_items[$c_i]}" == "${basename_#"${HOST_PREFIX}"}" ]]; then
+						log_info "Host prefer item detected: '${a_common_items[$c_i]}'"
 						unset "a_common_items[$c_i]"
 						break
 					fi
@@ -285,13 +284,13 @@ do_link() {
 			else
 				local as_var="as_${item_type}_item"
 			fi
-			local actual="${!as_var}"
+			local actual_item="${!as_var}"
 
-			log_vars "item_type" "item" "as_var" "actual"
-			if [[ -f "$actual" ]]; then
-				log_info "Link ${item_type^^} file: $actual -> $as_home_item"
-				ln -sf "$actual" "$as_home_item"
-			elif [[ -d "$actual" ]]; then
+			log_vars "item_type" "item" "as_var" "actual_item"
+			if [[ -f "$actual_item" ]]; then
+				log_info "Link ${item_type^^} file: $actual_item -> $as_home_item"
+				ln -sf "$actual_item" "$as_home_item"
+			elif [[ -d "$actual_item" ]]; then
 				log_info "Create directory: '$as_home_item'"
 				mkdir -p "$as_home_item"
 
@@ -300,11 +299,10 @@ do_link() {
 				fi
 
 				if [[ "$item_type" == "union" ]]; then
-					do_link "$as_home_item" "host"
+					do_link "$as_home_item"
 				else
 					do_link "$as_home_item" "$item_type"
 				fi
-
 			fi
 		done
 	done
