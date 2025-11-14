@@ -228,12 +228,6 @@ do_link() {
 
 	local a_host_items=() a_common_items=()
 	if [[ -n "$dir_type" ]]; then
-		# if UNION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		# if UNION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		# if UNION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		# if UNION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		# if UNION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		# if UNION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		local a_dir_var="a_${dir_type}_dir"
 		map_dir_items "${!a_dir_var}" "a_${dir_type}_items"
 	else
@@ -307,9 +301,10 @@ do_link() {
 
 				if [[ "$item_type" == "union" ]]; then
 					do_link "$as_home_item" "host"
+				else
+					do_link "$as_home_item" "$item_type"
 				fi
 
-				do_link "$as_home_item" "$item_type"
 			fi
 		done
 	done
