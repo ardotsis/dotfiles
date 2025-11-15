@@ -207,42 +207,43 @@ convert_home_path() {
 }
 
 do_link() {
-	# Do NOT use double quotes with -d options to preserve null character
 	local a_home_dir="$1"
 	local dir_type="${2:-}"
-	log_vars "dir_type"
+	local prefix_base="${3:-}"
 
-	# Generate each home directories
-	local a_host_dir a_common_dir
-	a_host_dir="$(convert_home_path "$a_home_dir" "host")"
-	a_common_dir="$(convert_home_path "$a_home_dir" "common")"
-	log_vars "a_home_dir" "a_host_dir" "a_common_dir"
+	log_vars "a_home_dir" "dir_type" "prefix_base"
+
+	local as_host_dir as_common_dir
+	as_host_dir="$(convert_home_path "$a_home_dir" "host")"
+	as_common_dir="$(convert_home_path "$a_home_dir" "common")"
+	log_vars "a_home_dir" "as_host_dir" "as_common_dir"
 
 	map_dir_items() {
 		local dir_path="$1"
 		local -n arr_ref="$2"
 
+		# Do NOT use double quotes with -d options to preserve null character
 		mapfile -d $'\0' "${!arr_ref}" < \
 			<(find "$dir_path" -mindepth 1 -maxdepth 1 -printf "%f\0")
 	}
 
-	local a_host_items=() a_common_items=()
+	local pre_host_items=() pre_common_items=()
 	if [[ -n "$dir_type" ]]; then
-		local a_dir_var="a_${dir_type}_dir"
-		map_dir_items "${!a_dir_var}" "a_${dir_type}_items"
+		local as_dir_var="as_${dir_type}_dir"
+		map_dir_items "${!as_dir_var}" "pre_${dir_type}_items"
 	else
-		map_dir_items "$a_host_dir" "a_host_items"
-		map_dir_items "$a_common_dir" "a_common_items"
+		map_dir_items "$as_host_dir" "pre_host_items"
+		map_dir_items "$as_common_dir" "pre_common_items"
 
 		# Remove host prefixed items from common items
-		for h_i in "${!a_host_items[@]}"; do
-			local path="${a_host_items[$h_i]}"
+		for h_i in "${!pre_host_items[@]}"; do
+			local path="${pre_host_items[$h_i]}"
 			local basename_="${path##*/}"
 			if [[ "$basename_" == "$HOST_PREFIX"* ]]; then
-				for c_i in "${!a_common_items[@]}"; do
-					if [[ "${a_common_items[$c_i]}" == "${basename_#"${HOST_PREFIX}"}" ]]; then
-						log_info "Host prefer item detected: '${a_common_items[$c_i]}'"
-						unset "a_common_items[$c_i]"
+				for c_i in "${!pre_common_items[@]}"; do
+					if [[ "${pre_common_items[$c_i]}" == "${basename_#"${HOST_PREFIX}"}" ]]; then
+						log_info "Host prefer item detected: '${pre_common_items[$c_i]}'"
+						unset "pre_common_items[$c_i]"
 						break
 					fi
 				done
@@ -250,34 +251,32 @@ do_link() {
 		done
 	fi
 
-	log_vars "a_host_items[@]" "a_common_items[@]"
+	log_vars "pre_host_items[@]" "pre_common_items[@]"
 
-	set() {
-		# TODO: How name reference works in bash?
+	set_pre_items() {
 		local -n arr_ref="$1"
 		local mode="$2"
 
 		mapfile -d $'\0' "${!arr_ref}" < <(comm "$mode" -z \
-			<(printf "%s\0" "${a_host_items[@]}" | sort -z) \
-			<(printf "%s\0" "${a_common_items[@]}" | sort -z))
+			<(printf "%s\0" "${pre_host_items[@]}" | sort -z) \
+			<(printf "%s\0" "${pre_common_items[@]}" | sort -z))
 	}
 
 	# shellcheck disable=SC2034
 	local union_items=() host_items=() common_items=()
-	set "union_items" "-12"
-	set "host_items" "-23"
-	set "common_items" "-13"
+	set_pre_items "union_items" "-12"
+	set_pre_items "host_items" "-23"
+	set_pre_items "common_items" "-13"
 	log_vars "union_items[@]" "common_items[@]" "host_items[@]"
 
-	# Host prefixed items always in $host_items
 	for item_type in "union" "host" "common"; do
 		local -n items="${item_type}_items"
 		for item in "${items[@]}"; do
 			local as_home_item="${a_home_dir}/${item}"
 			# shellcheck disable=SC2034
-			local as_common_item="${a_common_dir}/${item}"
+			local as_common_item="${as_common_dir}/${item}"
 			# shellcheck disable=SC2034
-			local as_host_item="${a_host_dir}/${item}"
+			local as_host_item="${as_host_dir}/${item}"
 
 			if [[ "$item_type" == "union" ]]; then
 				local as_var="as_host_item"
@@ -287,22 +286,33 @@ do_link() {
 			local actual_item="${!as_var}"
 
 			log_vars "item_type" "item" "as_var" "actual_item"
-			if [[ -f "$actual_item" ]]; then
+			# DIRECTORY
+			if [[ -d "$actual_item" ]]; then
+				log_info "Create directory: '$as_home_item'"
+				if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
+					renamed_as_home_item="${a_home_dir}/${item#"${HOST_PREFIX}"}"
+					mkdir -p "$renamed_as_home_item"
+					do_link "$as_home_item" "$item_type" "$as_home_item"
+				else
+					mkdir -p "$as_home_item"
+					if [[ "$item_type" == "union" ]]; then
+						do_link "$as_home_item"
+					else
+						# Exclusive home directory
+						do_link "$as_home_item" "$item_type"
+					fi
+				fi
+			# FILE
+			elif [[ -f "$actual_item" ]]; then
+				if [[ "$item_type" == "host" && -n "$prefix_base" ]]; then
+					log_debug "Rename home link"
+					# todo cache
+					local basename_="${prefix_base##*/}"
+					local original_dir="${basename_#"${HOST_PREFIX}"}"
+					local as_home_item="${a_home_dir%/*}/${original_dir}"
+				fi
 				log_info "Link ${item_type^^} file: $actual_item -> $as_home_item"
 				ln -sf "$actual_item" "$as_home_item"
-			elif [[ -d "$actual_item" ]]; then
-				log_info "Create directory: '$as_home_item'"
-				mkdir -p "$as_home_item"
-
-				if [[ "$item_type" == "host" ]]; then
-					echo "todo: rename link dst: VULTR_nvim -> nvim"
-				fi
-
-				if [[ "$item_type" == "union" ]]; then
-					do_link "$as_home_item"
-				else
-					do_link "$as_home_item" "$item_type"
-				fi
 			fi
 		done
 	done

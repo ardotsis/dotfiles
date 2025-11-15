@@ -8,6 +8,7 @@
     "richie5um2.vscode-sort-json",
     "formulahendry.code-runner",
     "mkhl.shfmt",
-    "mads-hartmann.bash-ide-vscode"
+    "mads-hartmann.bash-ide-vscode",
+    "xyz.local-history"
   ]
 }
