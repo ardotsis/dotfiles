@@ -34,6 +34,7 @@
   // editor.lightbulb.enabled: https://github.com/microsoft/vscode-copilot-release/issues/735#issuecomment-1886589021
   "editor.lightbulb.enabled": "off",
   "editor.minimap.enabled": true,
+  "explorer.confirmDelete": false,
   "explorer.confirmDragAndDrop": false,
   "extensions.experimental.affinity": {
     "asvetliakov.vscode-neovim": 1
