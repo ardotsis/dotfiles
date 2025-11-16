@@ -323,8 +323,8 @@ do_link() {
 		local mode="$2"
 
 		mapfile -d $'\0' "${!arr_ref}" < <(comm "$mode" -z \
-			<(printf "%s" "${pre_host_items[@]}" | sort -z) \
-			<(printf "%s" "${pre_common_items[@]}" | sort -z))
+			<(printf "%s\0" "${pre_host_items[@]}" | sort -z) \
+			<(printf "%s\0" "${pre_common_items[@]}" | sort -z))
 	}
 
 	# shellcheck disable=SC2034
@@ -337,6 +337,7 @@ do_link() {
 	for item_type in "union" "host" "common"; do
 		local -n items="${item_type}_items"
 		for item in "${items[@]}"; do
+			[[ -z "$item" ]] && continue # TODO: Remove ("") empty element from arr b4 for
 			local as_home_item="${a_home_dir}/${item}"
 			# shellcheck disable=SC2034
 			local as_common_item="${as_common_dir}/${item}"
@@ -382,7 +383,7 @@ do_link() {
 		done
 	done
 
-	tree "$HOME_DIR/.config"
+	tree "$HOME_DIR"
 }
 
 add_ardotsis_chan() {
