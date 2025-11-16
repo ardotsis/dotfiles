@@ -5,13 +5,17 @@ set -e -u -o pipefail -C
 #                 Configurations                 #
 ##################################################
 readonly USERNAME="ardotsis"
+
 readonly HOME_DIR="/home/$USERNAME"
 readonly DOTFILES_DIR="$HOME_DIR/.dotfiles"
 readonly DOTFILES_SRC_DIR="$DOTFILES_DIR/dotfiles"
 readonly COMMON_DIR="$DOTFILES_SRC_DIR/common"
+
 readonly DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
 readonly DOTFILES_LOCAL_REPO="/dotfiles"
-readonly DOTFILES_INSTALLER_URL="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
+
+readonly DOTFILES_SCRIPT_URL="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
+readonly DOTFILES_SCRIPT_PATH="/var/tmp/install_dotfiles.sh"
 
 # Parse script parameters
 while (("$#")); do
@@ -154,6 +158,8 @@ declare -A LOG_COLOR=(
 	["info"]="${COLOR["green"]}"
 	["warn"]="${COLOR["yellow"]}"
 	["error"]="${COLOR["red"]}"
+	["var"]="${COLOR["purple"]}"
+	["value"]="${COLOR["cyan"]}"
 )
 ##################################################
 #                Common Functions                #
@@ -192,7 +198,7 @@ log_vars() {
 
 	local msg=""
 	for var_name in "${var_names[@]}"; do
-		fmt="${COLOR["purple"]}\$$var_name${COLOR["reset"]}='${COLOR["cyan"]}${!var_name}${COLOR["reset"]}'"
+		fmt="${LOG_COLOR["var"]}\$$var_name${COLOR["reset"]}='${LOG_COLOR["value"]}${!var_name}${COLOR["reset"]}'"
 		if [[ -z "$msg" ]]; then
 			msg="$fmt"
 		else
@@ -272,7 +278,7 @@ convert_home_path() {
 }
 
 link() {
-	local a_home_dir="$1"
+	local a_home_dir="${1-$HOME_DIR}"
 	local dir_type="${2:-}"
 	local prefix_base="${3:-}"
 
@@ -382,8 +388,6 @@ link() {
 			fi
 		done
 	done
-
-	tree "$HOME_DIR"
 }
 
 add_ardotsis_chan() {
@@ -413,16 +417,18 @@ clone_dotfiles_repo() {
 #                   Installers                   #
 ##################################################
 do_setup_vultr() {
-	if is_cmd_exist ufw; then
-		print_header "Uninstall UFW"
-		$SUDO ufw disable
-		remove_package "ufw"
-	fi
+	# if is_cmd_exist ufw; then
+	# 	print_header "Uninstall UFW"
+	# 	$SUDO ufw disable
+	# 	remove_package "ufw"
+	# fi
 
-	if ! is_cmd_exist git; then
-		print_header "Install Git"
-		install_package "git"
-	fi
+	# if ! is_cmd_exist git; then
+	# 	print_header "Install Git"
+	# 	install_package "git"
+	# fi
+
+	# install_package "neovim"
 
 	print_header "Clone Dotfiles Repository"
 	if [[ "$DEBUG" == "true" ]]; then
@@ -431,9 +437,7 @@ do_setup_vultr() {
 		clone_dotfiles_repo "git"
 	fi
 
-	mkdir "$HOME_DIR/new-home"
-	link "$HOME_DIR/new-home"
-	tree "$HOME_DIR/new-home"
+	link
 }
 
 do_setup_arch() {
@@ -441,20 +445,36 @@ do_setup_arch() {
 }
 
 main() {
-	log_info "Start installation..."
+	log_info "Start installation script..."
+
+	# Download install script when script invoked via pipeline
+	if ! [[ -t 0 ]]; then
+		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_PATH"
+		chmod +x "$DOTFILES_SCRIPT_PATH"
+		cmd=(
+			"$DOTFILES_SCRIPT_PATH"
+			"--host"
+			"$HOST"
+			"$([[ "$DEBUG" == "true" ]] && printf "%s" "--debug")"
+		)
+
+		"${cmd[@]}"
+		exit 0
+	fi
 
 	log_vars \
 		"USERNAME" "DOTFILES_DIR" "DOTFILES_SRC_DIR" \
 		"COMMON_DIR" "HOST_DIR" "HOST_PREFIX" \
 		"HOST" "IS_SETUP" "DEBUG" "SUDO" "OS"
 
+	sudo -v
 	if [[ "$IS_SETUP" == "true" ]]; then
 		"do_setup_${HOST}"
 	else
 		local passwd
 		passwd=$(get_random_str 32)
 		add_ardotsis_chan "$passwd"
-		echo "Password for ar.sis: $passwd"
+		log_info "Password for $USERNAME: $passwd"
 
 		script_path=$(get_script_path)
 		log_vars "script_path"
