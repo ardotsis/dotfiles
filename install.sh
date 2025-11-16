@@ -73,9 +73,92 @@ else
 	fi
 fi
 
+# Source: https://stackoverflow.com/a/28938235
+declare -A COLOR=(
+	# Reset
+	["reset"]="\033[0m"
+
+	# Regular Colors
+	["black"]="\033[0;30m"
+	["red"]="\033[0;31m"
+	["green"]="\033[0;32m"
+	["yellow"]="\033[0;33m"
+	["blue"]="\033[0;34m"
+	["purple"]="\033[0;35m"
+	["cyan"]="\033[0;36m"
+	["white"]="\033[0;37m"
+
+	# Bold
+	["bblack"]="\033[1;30m"
+	["bred"]="\033[1;31m"
+	["bgreen"]="\033[1;32m"
+	["byellow"]="\033[1;33m"
+	["bblue"]="\033[1;34m"
+	["bpurple"]="\033[1;35m"
+	["bcyan"]="\033[1;36m"
+	["bwhite"]="\033[1;37m"
+
+	# Underline
+	["ublack"]="\033[4;30m"
+	["ured"]="\033[4;31m"
+	["ugreen"]="\033[4;32m"
+	["uyellow"]="\033[4;33m"
+	["ublue"]="\033[4;34m"
+	["upurple"]="\033[4;35m"
+	["ucyan"]="\033[4;36m"
+	["uwhite"]="\033[4;37m"
+
+	# Background
+	["on_black"]="\033[40m"
+	["on_red"]="\033[41m"
+	["on_green"]="\033[42m"
+	["on_yellow"]="\033[43m"
+	["on_blue"]="\033[44m"
+	["on_purple"]="\033[45m"
+	["on_cyan"]="\033[46m"
+	["on_white"]="\033[47m"
+
+	# High Intensity
+	["iblack"]="\033[0;90m"
+	["ired"]="\033[0;91m"
+	["igreen"]="\033[0;92m"
+	["iyellow"]="\033[0;93m"
+	["iblue"]="\033[0;94m"
+	["ipurple"]="\033[0;95m"
+	["icyan"]="\033[0;96m"
+	["iwhite"]="\033[0;97m"
+
+	# Bold High Intensity
+	["biblack"]="\033[1;90m"
+	["bired"]="\033[1;91m"
+	["bigreen"]="\033[1;92m"
+	["biyellow"]="\033[1;93m"
+	["biblue"]="\033[1;94m"
+	["bipurple"]="\033[1;95m"
+	["bicyan"]="\033[1;96m"
+	["biwhite"]="\033[1;97m"
+
+	# High Intensity backgrounds
+	["on_iblack"]="\033[0;100m"
+	["on_ired"]="\033[0;101m"
+	["on_igreen"]="\033[0;102m"
+	["on_iyellow"]="\033[0;103m"
+	["on_iblue"]="\033[0;104m"
+	["on_ipurple"]="\033[0;105m"
+	["on_icyan"]="\033[0;106m"
+	["on_iwhite"]="\033[0;107m"
+)
+
+declare -A LOG_COLOR=(
+	["debug"]="${COLOR["white"]}"
+	["info"]="${COLOR["green"]}"
+	["warn"]="${COLOR["yellow"]}"
+	["error"]="${COLOR["red"]}"
+)
 ##################################################
 #                Common Functions                #
 ##################################################
+
 print_header() {
 	local text="$1"
 	local width=35
@@ -90,52 +173,34 @@ print_header() {
 	printf "\n"
 }
 
-_log() {
+log() {
 	local level="$1"
 	local msg="$2"
-	local timestamp
-
-	timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
 
 	if [[ "$DEBUG" == "true" ]]; then
-		printf "[%s] [%s] [%s] %s\n" "$timestamp" "$level" "${FUNCNAME[2]}" "$msg" >&2
+		local timestamp
+		timestamp="$(date "+%Y-%m-%d %H:%M:%S")"
+		printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_COLOR["${level}"]}" "${level^^}" "${COLOR["reset"]}" "${FUNCNAME[2]}" "$msg" >&2
 	fi
 }
-
-log_debug() {
-	local msg="$1"
-	_log "DEBUG" "$msg"
-}
-
+log_debug() { log "debug" "$1"; }
+log_info() { log "info" "$1"; }
+log_warn() { log "warn" "$1"; }
+log_error() { log "error" "$1"; }
 log_vars() {
 	local var_names=("$@")
-	local msg=""
 
+	local msg=""
 	for var_name in "${var_names[@]}"; do
-		fmt="\$$var_name='${!var_name}'"
-		if [[ -z $msg ]]; then
+		fmt="${COLOR["purple"]}\$$var_name${COLOR["reset"]}='${COLOR["cyan"]}${!var_name}${COLOR["reset"]}'"
+		if [[ -z "$msg" ]]; then
 			msg="$fmt"
 		else
 			msg="$msg $fmt"
 		fi
 	done
 
-	_log "DEBUG_VAR" "$msg"
-}
-
-log_info() {
-	local msg="$1"
-	_log "INFO" "$msg"
-}
-
-log_warn() {
-	local msg="$1"
-	_log "WARN" "$msg"
-}
-
-log_error() {
-	local msg="$1"
-	_log "ERROR" "$msg"
+	log "debug" "$msg"
 }
 
 get_script_path() {
@@ -258,8 +323,8 @@ do_link() {
 		local mode="$2"
 
 		mapfile -d $'\0' "${!arr_ref}" < <(comm "$mode" -z \
-			<(printf "%s\0" "${pre_host_items[@]}" | sort -z) \
-			<(printf "%s\0" "${pre_common_items[@]}" | sort -z))
+			<(printf "%s" "${pre_host_items[@]}" | sort -z) \
+			<(printf "%s" "${pre_common_items[@]}" | sort -z))
 	}
 
 	# shellcheck disable=SC2034
@@ -267,7 +332,7 @@ do_link() {
 	set_pre_items "union_items" "-12"
 	set_pre_items "host_items" "-23"
 	set_pre_items "common_items" "-13"
-	log_vars "union_items[@]" "common_items[@]" "host_items[@]"
+	log_vars "union_items[@]" "host_items[@]" "common_items[@]"
 
 	for item_type in "union" "host" "common"; do
 		local -n items="${item_type}_items"
