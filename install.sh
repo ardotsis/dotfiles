@@ -271,7 +271,7 @@ convert_home_path() {
 	printf "%s" "${original_path/#${!from_var}/${!to_var}}"
 }
 
-do_link() {
+link() {
 	local a_home_dir="$1"
 	local dir_type="${2:-}"
 	local prefix_base="${3:-}"
@@ -358,14 +358,14 @@ do_link() {
 				if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
 					renamed_as_home_item="${a_home_dir}/${item#"${HOST_PREFIX}"}"
 					mkdir -p "$renamed_as_home_item"
-					do_link "$as_home_item" "$item_type" "$as_home_item"
+					link "$as_home_item" "$item_type" "$as_home_item"
 				else
 					mkdir -p "$as_home_item"
 					if [[ "$item_type" == "union" ]]; then
-						do_link "$as_home_item"
+						link "$as_home_item"
 					else
 						# Exclusive home directory
-						do_link "$as_home_item" "$item_type"
+						link "$as_home_item" "$item_type"
 					fi
 				fi
 			# FILE
@@ -401,9 +401,9 @@ clone_dotfiles_repo() {
 	local from="$1"
 
 	log_info "Clone dotfiles repository from $from..."
-	if [[ $from == "git" ]]; then
+	if [[ "$from" == "git" ]]; then
 		git clone -b main "$DOTFILES_REPO" $DOTFILES_DIR
-	elif [[ $from == "local" ]]; then
+	elif [[ "$from" == "local" ]]; then
 		cp -r "$DOTFILES_LOCAL_REPO" "$DOTFILES_DIR"
 		chown -R "$USERNAME:$USERNAME" "$DOTFILES_DIR"
 	fi
@@ -419,10 +419,10 @@ do_setup_vultr() {
 		remove_package "ufw"
 	fi
 
-	# if ! is_cmd_exist git; then
-	# 	print_header "Install Git"
-	# 	install_package "git"
-	# fi
+	if ! is_cmd_exist git; then
+		print_header "Install Git"
+		install_package "git"
+	fi
 
 	print_header "Clone Dotfiles Repository"
 	if [[ "$DEBUG" == "true" ]]; then
@@ -431,7 +431,9 @@ do_setup_vultr() {
 		clone_dotfiles_repo "git"
 	fi
 
-	do_link "$HOME_DIR"
+	mkdir "$HOME_DIR/new-home"
+	link "$HOME_DIR/new-home"
+	tree "$HOME_DIR/new-home"
 }
 
 do_setup_arch() {
