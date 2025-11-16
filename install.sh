@@ -449,6 +449,7 @@ main() {
 
 	# Download install script when script invoked via pipeline
 	if ! [[ -t 0 ]]; then
+		log_info "Downloading script..."
 		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_PATH"
 		chmod +x "$DOTFILES_SCRIPT_PATH"
 		cmd=(
