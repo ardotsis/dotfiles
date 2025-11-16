@@ -417,18 +417,18 @@ clone_dotfiles_repo() {
 #                   Installers                   #
 ##################################################
 do_setup_vultr() {
-	# if is_cmd_exist ufw; then
-	# 	print_header "Uninstall UFW"
-	# 	$SUDO ufw disable
-	# 	remove_package "ufw"
-	# fi
+	if is_cmd_exist ufw; then
+		print_header "Uninstall UFW"
+		$SUDO ufw disable
+		remove_package "ufw"
+	fi
 
-	# if ! is_cmd_exist git; then
-	# 	print_header "Install Git"
-	# 	install_package "git"
-	# fi
+	if ! is_cmd_exist git; then
+		print_header "Install Git"
+		install_package "git"
+	fi
 
-	# install_package "neovim"
+	install_package "neovim"
 
 	print_header "Clone Dotfiles Repository"
 	if [[ "$DEBUG" == "true" ]]; then
