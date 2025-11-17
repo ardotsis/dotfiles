@@ -74,12 +74,3 @@ curl -fsSL "dotfiles.menhera.art" | bash -s -- -h arch
 
 - [ ] See this.
   - <https://github.com/ardotsis/dotfiles-old>
-
-## Memo
-
-### About VSCode
-
-- Do not use VSCode with Japanese IME. Some keybindings may not work. (e.g., Focus on Terminal)
-- VSCode settings might conflict between _User_ and _Workstation_. Backup and reset the _User_ configuration files.
-  - `"C:\Users\<USER>\AppData\Roaming\Code\User\settings.json"`
-  - `"C:\Users\<USER>\AppData\Roaming\Code\User\keybindings.json"`
