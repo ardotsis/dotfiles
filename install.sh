@@ -453,7 +453,7 @@ main() {
 		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_PATH"
 		chmod +x "$DOTFILES_SCRIPT_PATH"
 		cmd=(
-			"$DOTFILES_SCRIPT_PATH"
+			"./$DOTFILES_SCRIPT_PATH"
 			"--host"
 			"$HOST"
 			"$([[ "$DEBUG" == "true" ]] && printf "%s" "--debug")"
