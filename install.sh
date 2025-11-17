@@ -270,7 +270,7 @@ convert_home_path() {
 	local to="$2"
 
 	local from
-	from=$(get_home_type "$original_path")
+	from="$(get_home_type "$original_path")"
 	local from_var="${from}_DIR"
 	local to_var="${to^^}_DIR"
 
@@ -449,7 +449,7 @@ main() {
 	log_info "Start installation script..."
 
 	# Download install script when script invoked via pipeline
-	if ! [[ -t 0 ]]; then
+	if [[ -t 0 ]]; then
 		log_info "Downloading script..."
 		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_FILE"
 		chmod +x "$DOTFILES_SCRIPT_FILE"
@@ -474,11 +474,11 @@ main() {
 	else
 		sudo -v
 		local passwd
-		passwd=$(get_random_str 32)
+		passwd="$(get_random_str 32)"
 		add_ardotsis_chan "$passwd"
 		log_info "Password for $USERNAME: $passwd"
 
-		script_path=$(get_script_path)
+		script_path="$(get_script_path)"
 		log_vars "script_path"
 		cmd=(
 			"$script_path"
