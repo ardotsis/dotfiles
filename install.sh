@@ -449,7 +449,7 @@ main() {
 	log_info "Start installation script..."
 
 	# Download install script when script invoked via pipeline
-	if [[ -t 0 ]]; then
+	if [[ ! -t 0 ]]; then
 		log_info "Downloading script..."
 		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_FILE"
 		chmod +x "$DOTFILES_SCRIPT_FILE"
