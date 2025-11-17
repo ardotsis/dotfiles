@@ -494,4 +494,3 @@ main() {
 }
 
 main
-echo "hi"
