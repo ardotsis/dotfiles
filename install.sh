@@ -6,16 +6,17 @@ set -e -u -o pipefail -C
 ##################################################
 readonly USERNAME="ardotsis"
 
+# Local paths
 readonly HOME_DIR="/home/$USERNAME"
 readonly DOTFILES_DIR="$HOME_DIR/.dotfiles"
 readonly DOTFILES_SRC_DIR="$DOTFILES_DIR/dotfiles"
 readonly COMMON_DIR="$DOTFILES_SRC_DIR/common"
+readonly DOTFILES_SCRIPT_FILE="/var/tmp/install_dotfiles.sh"
 
+# Endpoints
 readonly DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
 readonly DOTFILES_LOCAL_REPO="/dotfiles"
-
 readonly DOTFILES_SCRIPT_URL="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
-readonly DOTFILES_SCRIPT_PATH="/var/tmp/install_dotfiles.sh"
 
 # Parse script parameters
 while (("$#")); do
@@ -450,10 +451,10 @@ main() {
 	# Download install script when script invoked via pipeline
 	if ! [[ -t 0 ]]; then
 		log_info "Downloading script..."
-		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_PATH"
-		chmod +x "$DOTFILES_SCRIPT_PATH"
+		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_FILE"
+		chmod +x "$DOTFILES_SCRIPT_FILE"
 		cmd=(
-			"$DOTFILES_SCRIPT_PATH"
+			"$DOTFILES_SCRIPT_FILE"
 			"--host"
 			"$HOST"
 			"$([[ "$DEBUG" == "true" ]] && printf "%s" "--debug")"
@@ -468,10 +469,10 @@ main() {
 		"COMMON_DIR" "HOST_DIR" "HOST_PREFIX" \
 		"HOST" "IS_SETUP" "DEBUG" "SUDO" "OS"
 
-	sudo -v
 	if [[ "$IS_SETUP" == "true" ]]; then
 		"do_setup_${HOST}"
 	else
+		sudo -v
 		local passwd
 		passwd=$(get_random_str 32)
 		add_ardotsis_chan "$passwd"
@@ -493,3 +494,4 @@ main() {
 }
 
 main
+echo "hi"
