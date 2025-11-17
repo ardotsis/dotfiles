@@ -31,7 +31,7 @@ while (("$#")); do
 		readonly DEBUG="true"
 		;;
 	*)
-		printf "Unknown parameter: '%s'" "$1"
+		printf "Unknown parameter: '%s'" "$1\n"
 		exit 1
 		;;
 	esac
@@ -39,7 +39,7 @@ while (("$#")); do
 done
 
 if [[ -z "${HOST+x}" ]]; then
-	printf "Please specify the host name using '--host (-h)' parameter."
+	printf "Please specify the host name using '--host (-h)' parameter.\n"
 	exit 1
 fi
 
