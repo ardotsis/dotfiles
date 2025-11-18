@@ -313,7 +313,7 @@ link() {
 	done
 }
 
-add_ardotsis_chan() {
+add_user() {
 	local passwd="$1"
 
 	if [[ "$OS" == "debian" ]]; then
@@ -395,30 +395,30 @@ main() {
 		local passwd
 		log_info "Generating new password for $USERNAME..."
 		passwd="$(get_random_str 32)"
-		add_ardotsis_chan "$passwd"
+		log_info "Adding $USERNAME..."
+		add_user "$passwd"
 
 		local run_cmd
-		get_script_run_cmd "$(get_script_path)" "false" "run_cmd"
-		# shellcheck disable=SC2068
-		sudo -u "$USERNAME" -- ${run_cmd[@]}
+		get_script_run_cmd "$(get_script_path)" "true" "run_cmd"
+		log_vars "run_cmd[@]"
+		sudo -u "$USERNAME" -- "${run_cmd[@]}"
 	fi
 }
 
 # Download script
 if [[ -z "${BASH_SOURCE[0]+x}" && "$INITIALIZED" == "false" ]]; then
 	if [[ "$TEST" == "true" ]]; then
-		printf "Copying script from local repository...\n"
+		printf "Copying script from %blocal%b repository...\n" "${COLOR["yellow"]}" "${COLOR["reset"]}"
 		cp "$DOTFILES_LOCAL_REPO/install.sh" "$DOTFILES_SCRIPT_FILE"
 	else
-		printf "Copying script from Git repository...\n"
+		printf "Downloading script from %bGit%b repository...\n" "${COLOR["yellow"]}" "${COLOR["reset"]}"
 		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_FILE"
 	fi
 	chmod +x "$DOTFILES_SCRIPT_FILE"
 
 	get_script_run_cmd "$DOTFILES_SCRIPT_FILE" "false" "run_cmd"
-	# shellcheck disable=SC2068
-	printf "Restarting...\n"
-	${run_cmd[@]}
+	printf "Restarting...\n\n"
+	"${run_cmd[@]}"
 else
 	main
 fi
