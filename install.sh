@@ -111,14 +111,14 @@ declare -A LOG_COLOR=(
 ##################################################
 #                Common Functions                #
 ##################################################
-log() {
+_log() {
 	local level="$1"
 	local msg="$2"
 
 	if [[ "$SHOW_LOG" == "true" ]]; then
 		local timestamp
 		timestamp="$(date "+%Y-%m-%d %H:%M:%S")"
-		printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_COLOR["${level}"]}" "${level^^}" "${COLOR["reset"]}" "${FUNCNAME[2]}" "$msg" >&2
+		printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_COLOR["${level}"]}" "${level^^}" "${COLOR["reset"]}" "${FUNCNAME[3]}" "$msg" >&2
 	fi
 }
 log_debug() { log "debug" "$1"; }
