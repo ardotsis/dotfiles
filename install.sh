@@ -6,14 +6,14 @@ set -e -u -o pipefail -C
 ##################################################
 readonly USERNAME="ardotsis"
 
-# Local paths
+# Paths
 readonly HOME_DIR="/home/$USERNAME"
 readonly DOTFILES_DIR="$HOME_DIR/.dotfiles"
 readonly DOTFILES_SRC_DIR="$DOTFILES_DIR/dotfiles"
 readonly COMMON_DIR="$DOTFILES_SRC_DIR/common"
 readonly DOTFILES_SCRIPT_FILE="/var/tmp/install_dotfiles.sh"
 
-# Endpoints
+# URIs
 readonly DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
 readonly DOTFILES_LOCAL_REPO="/dotfiles"
 readonly DOTFILES_SCRIPT_URL="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
@@ -25,11 +25,14 @@ while (("$#")); do
 		readonly HOST="$2"
 		shift
 		;;
-	"-s" | "--setup")
-		readonly IS_SETUP="true"
+	"-i" | "--initialized")
+		readonly INITIALIZED="true"
 		;;
-	"-d" | "--debug")
-		readonly DEBUG="true"
+	"-t" | "--test")
+		readonly TEST="true"
+		;;
+	"-s" | "--show-log")
+		readonly SHOW_LOG="true"
 		;;
 	*)
 		printf "Unknown parameter: '%s'" "$1\n"
@@ -44,12 +47,16 @@ if [[ -z "${HOST+x}" ]]; then
 	exit 1
 fi
 
-if [[ -z "${IS_SETUP+x}" ]]; then
-	readonly IS_SETUP="false"
+if [[ -z "${INITIALIZED+x}" ]]; then
+	readonly INITIALIZED="false"
 fi
 
-if [[ -z "${DEBUG+x}" ]]; then
-	readonly DEBUG="false"
+if [[ -z "${TEST+x}" ]]; then
+	readonly TEST="false"
+fi
+
+if [[ -z "${SHOW_LOG+x}" ]]; then
+	readonly SHOW_LOG="false"
 fi
 
 # Validate host
@@ -80,10 +87,8 @@ fi
 
 # Source: https://stackoverflow.com/a/28938235
 declare -A COLOR=(
-	# Reset
 	["reset"]="\033[0m"
 
-	# Regular Colors
 	["black"]="\033[0;30m"
 	["red"]="\033[0;31m"
 	["green"]="\033[0;32m"
@@ -92,66 +97,6 @@ declare -A COLOR=(
 	["purple"]="\033[0;35m"
 	["cyan"]="\033[0;36m"
 	["white"]="\033[0;37m"
-
-	# Bold
-	["bblack"]="\033[1;30m"
-	["bred"]="\033[1;31m"
-	["bgreen"]="\033[1;32m"
-	["byellow"]="\033[1;33m"
-	["bblue"]="\033[1;34m"
-	["bpurple"]="\033[1;35m"
-	["bcyan"]="\033[1;36m"
-	["bwhite"]="\033[1;37m"
-
-	# Underline
-	["ublack"]="\033[4;30m"
-	["ured"]="\033[4;31m"
-	["ugreen"]="\033[4;32m"
-	["uyellow"]="\033[4;33m"
-	["ublue"]="\033[4;34m"
-	["upurple"]="\033[4;35m"
-	["ucyan"]="\033[4;36m"
-	["uwhite"]="\033[4;37m"
-
-	# Background
-	["on_black"]="\033[40m"
-	["on_red"]="\033[41m"
-	["on_green"]="\033[42m"
-	["on_yellow"]="\033[43m"
-	["on_blue"]="\033[44m"
-	["on_purple"]="\033[45m"
-	["on_cyan"]="\033[46m"
-	["on_white"]="\033[47m"
-
-	# High Intensity
-	["iblack"]="\033[0;90m"
-	["ired"]="\033[0;91m"
-	["igreen"]="\033[0;92m"
-	["iyellow"]="\033[0;93m"
-	["iblue"]="\033[0;94m"
-	["ipurple"]="\033[0;95m"
-	["icyan"]="\033[0;96m"
-	["iwhite"]="\033[0;97m"
-
-	# Bold High Intensity
-	["biblack"]="\033[1;90m"
-	["bired"]="\033[1;91m"
-	["bigreen"]="\033[1;92m"
-	["biyellow"]="\033[1;93m"
-	["biblue"]="\033[1;94m"
-	["bipurple"]="\033[1;95m"
-	["bicyan"]="\033[1;96m"
-	["biwhite"]="\033[1;97m"
-
-	# High Intensity backgrounds
-	["on_iblack"]="\033[0;100m"
-	["on_ired"]="\033[0;101m"
-	["on_igreen"]="\033[0;102m"
-	["on_iyellow"]="\033[0;103m"
-	["on_iblue"]="\033[0;104m"
-	["on_ipurple"]="\033[0;105m"
-	["on_icyan"]="\033[0;106m"
-	["on_iwhite"]="\033[0;107m"
 )
 
 declare -A LOG_COLOR=(
@@ -162,29 +107,15 @@ declare -A LOG_COLOR=(
 	["var"]="${COLOR["purple"]}"
 	["value"]="${COLOR["cyan"]}"
 )
+
 ##################################################
 #                Common Functions                #
 ##################################################
-
-print_header() {
-	local text="$1"
-	local width=35
-	local padding="$(((width - ${#text} - 2) / 2))"
-	local extra="$(((width - ${#text} - 2) % 2))"
-
-	printf "#%.0s" $(seq 1 "$width")
-	printf "\n"
-	printf "#%*s%s%*s#" "$padding" "" "$text" "$((padding + extra))" ""
-	printf "\n"
-	printf "#%.0s" $(seq 1 "$width")
-	printf "\n"
-}
-
 log() {
 	local level="$1"
 	local msg="$2"
 
-	if [[ "$DEBUG" == "true" ]]; then
+	if [[ "$SHOW_LOG" == "true" ]]; then
 		local timestamp
 		timestamp="$(date "+%Y-%m-%d %H:%M:%S")"
 		printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_COLOR["${level}"]}" "${level^^}" "${COLOR["reset"]}" "${FUNCNAME[2]}" "$msg" >&2
@@ -394,7 +325,6 @@ link() {
 add_ardotsis_chan() {
 	local passwd="$1"
 
-	print_header "Add ar.sis chan"
 	if [[ "$OS" == "debian" ]]; then
 		$SUDO useradd -m -s "/bin/bash" -G "sudo" "$USERNAME"
 		printf "%s:%s" "$USERNAME" "$passwd" | $SUDO chpasswd
@@ -419,20 +349,17 @@ clone_dotfiles_repo() {
 ##################################################
 do_setup_vultr() {
 	if is_cmd_exist ufw; then
-		print_header "Uninstall UFW"
 		$SUDO ufw disable
 		remove_package "ufw"
 	fi
 
 	if ! is_cmd_exist git; then
-		print_header "Install Git"
 		install_package "git"
 	fi
 
 	install_package "neovim"
 
-	print_header "Clone Dotfiles Repository"
-	if [[ "$DEBUG" == "true" ]]; then
+	if [[ "$TEST" == "true" ]]; then
 		clone_dotfiles_repo "local"
 	else
 		clone_dotfiles_repo "git"
@@ -448,48 +375,58 @@ do_setup_arch() {
 main() {
 	log_info "Start installation script..."
 
-	# Download install script when script invoked via pipeline
-	if [[ ! -t 0 ]]; then
-		log_info "Downloading script..."
-		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_FILE"
-		chmod +x "$DOTFILES_SCRIPT_FILE"
-		cmd=(
-			"$DOTFILES_SCRIPT_FILE"
+	get_script_runner() {
+		local script_path="$1"
+		local -n arr_ref="$6"
+
+		arr_ref=(
+			"$script_path"
 			"--host"
 			"$HOST"
-			"$([[ "$DEBUG" == "true" ]] && printf "%s" "--debug")"
+			"$([[ "$INITIALIZED" == "true" ]] && printf "%s" "--initialized")"
+			"$([[ "$TEST" == "true" ]] && printf "%s" "--test")"
+			"$([[ "$SHOW_LOG" == "true" ]] && printf "%s" "--show-log")"
 		)
+	}
 
-		"${cmd[@]}"
+	if [[ -z "${BASH_SOURCE[0]+x}" ]]; then
+		if [[ "$TEST" == "true" ]]; then
+			log_info "Copying script from local..."
+			cp "$DOTFILES_LOCAL_REPO/install.sh" "$DOTFILES_SCRIPT_FILE"
+		else
+			log_info "Downloading script from Git..."
+			curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_FILE"
+		fi
+
+		chmod +x "$DOTFILES_SCRIPT_FILE"
+
+		local runner
+		get_script_runner "$DOTFILES_SCRIPT_FILE" "runner"
+		"${runner[@]}"
+
 		exit 0
 	fi
 
 	log_vars \
 		"USERNAME" "DOTFILES_DIR" "DOTFILES_SRC_DIR" \
 		"COMMON_DIR" "HOST_DIR" "HOST_PREFIX" \
-		"HOST" "IS_SETUP" "DEBUG" "SUDO" "OS"
+		"HOST" "INITIALIZED" "TEST" "SUDO" "OS"
 
-	if [[ "$IS_SETUP" == "true" ]]; then
+	if [[ "$INITIALIZED" == "true" ]]; then
 		"do_setup_${HOST}"
 	else
-		sudo -v
+		if [[ -n "$SUDO" ]]; then
+			sudo -v
+		fi
+
 		local passwd
 		passwd="$(get_random_str 32)"
-		add_ardotsis_chan "$passwd"
 		log_info "Password for $USERNAME: $passwd"
+		add_ardotsis_chan "$passwd"
 
-		script_path="$(get_script_path)"
-		log_vars "script_path"
-		cmd=(
-			"$script_path"
-			"--host"
-			"$HOST"
-			"--setup"
-			"$([[ "$DEBUG" == "true" ]] && printf "%s" "--debug")"
-		)
-
-		print_header "Run Script as $USERNAME"
-		sudo -u "$USERNAME" -- "${cmd[@]}"
+		local runner
+		get_script_runner "$(get_script_path)" "runner"
+		sudo -u "$USERNAME" -- "${runner[@]}"
 	fi
 }
 
