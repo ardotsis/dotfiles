@@ -378,7 +378,7 @@ get_script_run_cmd() {
 }
 
 main() {
-	log_info "Start installation script..."
+	log_info "Start installation script as ${COLOR["yellow"]}$(whoami)${COLOR["reset"]}..."
 
 	log_vars \
 		"USERNAME" "DOTFILES_DIR" "DOTFILES_SRC_DIR" \
