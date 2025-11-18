@@ -11,5 +11,5 @@ RUN apt-get update && \
 COPY . /dotfiles
 RUN chmod +x /dotfiles/install.sh
 
-# CMD ["bash", "-c", "cat /dotfiles/install.sh | bash -s -- $INSTALL_ARGS"]
-CMD ["bash", "-c", "./dotfiles/install.sh ${INSTALL_ARGS}"]
+# Simulate run via curl
+CMD ["bash", "-c", "cat /dotfiles/install.sh | bash -s -- $INSTALL_ARGS"]

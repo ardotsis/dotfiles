@@ -372,40 +372,23 @@ do_setup_arch() {
 	log_error "do_setup_arch - Not implemented yet."
 }
 
+get_script_runner() {
+	local script_path="$1"
+	local -n arr_ref="$2"
+	local initialized="$3"
+
+	arr_ref=(
+		"$script_path"
+		"--host"
+		"$HOST"
+		"$([[ "$initialized" == "true" ]] && printf "%s" "--initialized")"
+		"$([[ "$TEST" == "true" ]] && printf "%s" "--test")"
+		"$([[ "$SHOW_LOG" == "true" ]] && printf "%s" "--show-log")"
+	)
+}
+
 main() {
 	log_info "Start installation script..."
-
-	get_script_runner() {
-		local script_path="$1"
-		local -n arr_ref="$6"
-
-		arr_ref=(
-			"$script_path"
-			"--host"
-			"$HOST"
-			"$([[ "$INITIALIZED" == "true" ]] && printf "%s" "--initialized")"
-			"$([[ "$TEST" == "true" ]] && printf "%s" "--test")"
-			"$([[ "$SHOW_LOG" == "true" ]] && printf "%s" "--show-log")"
-		)
-	}
-
-	if [[ -z "${BASH_SOURCE[0]+x}" ]]; then
-		if [[ "$TEST" == "true" ]]; then
-			log_info "Copying script from local..."
-			cp "$DOTFILES_LOCAL_REPO/install.sh" "$DOTFILES_SCRIPT_FILE"
-		else
-			log_info "Downloading script from Git..."
-			curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_FILE"
-		fi
-
-		chmod +x "$DOTFILES_SCRIPT_FILE"
-
-		local runner
-		get_script_runner "$DOTFILES_SCRIPT_FILE" "runner"
-		"${runner[@]}"
-
-		exit 0
-	fi
 
 	log_vars \
 		"USERNAME" "DOTFILES_DIR" "DOTFILES_SRC_DIR" \
@@ -425,9 +408,25 @@ main() {
 		add_ardotsis_chan "$passwd"
 
 		local runner
-		get_script_runner "$(get_script_path)" "runner"
-		sudo -u "$USERNAME" -- "${runner[@]}"
+		get_script_runner "$(get_script_path)" "runner" "true"
+		# shellcheck disable=SC2068
+		sudo -u "$USERNAME" -- ${runner[@]}
 	fi
 }
 
-main
+# Download script
+if [[ -z "${BASH_SOURCE[0]+x}" && "$INITIALIZED" == "false" ]]; then
+	if [[ "$TEST" == "true" ]]; then
+		cp "$DOTFILES_LOCAL_REPO/install.sh" "$DOTFILES_SCRIPT_FILE"
+	else
+		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_FILE"
+	fi
+
+	chmod +x "$DOTFILES_SCRIPT_FILE"
+
+	get_script_runner "$DOTFILES_SCRIPT_FILE" "runner" "false"
+	# shellcheck disable=SC2068
+	${runner[@]}
+else
+	main
+fi
