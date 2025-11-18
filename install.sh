@@ -31,9 +31,6 @@ while (("$#")); do
 	"-t" | "--test")
 		readonly TEST="true"
 		;;
-	"-s" | "--show-log")
-		readonly SHOW_LOG="true"
-		;;
 	*)
 		printf "Unknown parameter: '%s'" "$1\n"
 		exit 1
@@ -53,10 +50,6 @@ fi
 
 if [[ -z "${TEST+x}" ]]; then
 	readonly TEST="false"
-fi
-
-if [[ -z "${SHOW_LOG+x}" ]]; then
-	readonly SHOW_LOG="false"
 fi
 
 # Validate host
@@ -115,11 +108,9 @@ _log() {
 	local level="$1"
 	local msg="$2"
 
-	if [[ "$SHOW_LOG" == "true" ]]; then
-		local timestamp
-		timestamp="$(date "+%Y-%m-%d %H:%M:%S")"
-		printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_COLOR["${level}"]}" "${level^^}" "${COLOR["reset"]}" "${FUNCNAME[2]}" "$msg" >&2
-	fi
+	local timestamp
+	timestamp="$(date "+%Y-%m-%d %H:%M:%S")"
+	printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_COLOR["${level}"]}" "${level^^}" "${COLOR["reset"]}" "${FUNCNAME[2]}" "$msg" >&2
 }
 log_debug() { _log "debug" "$1"; }
 log_info() { _log "info" "$1"; }
@@ -372,19 +363,18 @@ do_setup_arch() {
 	log_error "do_setup_arch - Not implemented yet."
 }
 
-get_script_runner() {
+get_script_run_cmd() {
 	local script_path="$1"
-	local -n arr_ref="$2"
-	local initialized="$3"
+	local initialized="$2"
+	local -n arr_ref="$3"
 
 	arr_ref=(
 		"$script_path"
 		"--host"
 		"$HOST"
-		"$([[ "$initialized" == "true" ]] && printf "%s" "--initialized")"
-		"$([[ "$TEST" == "true" ]] && printf "%s" "--test")"
-		"$([[ "$SHOW_LOG" == "true" ]] && printf "%s" "--show-log")"
 	)
+	[[ "$initialized" == "true" ]] && arr_ref+=("--initialized") || true
+	[[ "$TEST" == "true" ]] && arr_ref+=("--test") || true
 }
 
 main() {
@@ -403,30 +393,32 @@ main() {
 		fi
 
 		local passwd
+		log_info "Generating new password for $USERNAME..."
 		passwd="$(get_random_str 32)"
-		log_info "Password for $USERNAME: $passwd"
 		add_ardotsis_chan "$passwd"
 
-		local runner
-		get_script_runner "$(get_script_path)" "runner" "true"
+		local run_cmd
+		get_script_run_cmd "$(get_script_path)" "false" "run_cmd"
 		# shellcheck disable=SC2068
-		sudo -u "$USERNAME" -- ${runner[@]}
+		sudo -u "$USERNAME" -- ${run_cmd[@]}
 	fi
 }
 
 # Download script
 if [[ -z "${BASH_SOURCE[0]+x}" && "$INITIALIZED" == "false" ]]; then
 	if [[ "$TEST" == "true" ]]; then
+		printf "Copying script from local repository...\n"
 		cp "$DOTFILES_LOCAL_REPO/install.sh" "$DOTFILES_SCRIPT_FILE"
 	else
+		printf "Copying script from Git repository...\n"
 		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_FILE"
 	fi
-
 	chmod +x "$DOTFILES_SCRIPT_FILE"
 
-	get_script_runner "$DOTFILES_SCRIPT_FILE" "runner" "false"
+	get_script_run_cmd "$DOTFILES_SCRIPT_FILE" "false" "run_cmd"
 	# shellcheck disable=SC2068
-	${runner[@]}
+	printf "Restarting...\n"
+	${run_cmd[@]}
 else
 	main
 fi
