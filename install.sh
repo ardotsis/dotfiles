@@ -118,13 +118,13 @@ _log() {
 	if [[ "$SHOW_LOG" == "true" ]]; then
 		local timestamp
 		timestamp="$(date "+%Y-%m-%d %H:%M:%S")"
-		printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_COLOR["${level}"]}" "${level^^}" "${COLOR["reset"]}" "${FUNCNAME[3]}" "$msg" >&2
+		printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_COLOR["${level}"]}" "${level^^}" "${COLOR["reset"]}" "${FUNCNAME[2]}" "$msg" >&2
 	fi
 }
-log_debug() { log "debug" "$1"; }
-log_info() { log "info" "$1"; }
-log_warn() { log "warn" "$1"; }
-log_error() { log "error" "$1"; }
+log_debug() { _log "debug" "$1"; }
+log_info() { _log "info" "$1"; }
+log_warn() { _log "warn" "$1"; }
+log_error() { _log "error" "$1"; }
 log_vars() {
 	local var_names=("$@")
 
@@ -138,7 +138,7 @@ log_vars() {
 		fi
 	done
 
-	log "debug" "$msg"
+	_log "debug" "$msg"
 }
 
 get_script_path() {
