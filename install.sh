@@ -78,7 +78,6 @@ else
 	fi
 fi
 
-# Source: https://stackoverflow.com/a/28938235
 declare -A COLOR=(
 	["reset"]="\033[0m"
 
