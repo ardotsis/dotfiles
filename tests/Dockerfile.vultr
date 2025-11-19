@@ -6,7 +6,7 @@ ENV INSTALL_ARGS=${INSTALL_ARGS}
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y sudo openssh-server ca-certificates curl tree
+    apt-get install -y sudo ca-certificates curl tree
 
 COPY . /dotfiles
 RUN chmod +x /dotfiles/install.sh

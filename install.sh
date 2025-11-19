@@ -11,7 +11,7 @@ readonly HOME_DIR="/home/$USERNAME"
 readonly DOTFILES_DIR="$HOME_DIR/.dotfiles"
 readonly DOTFILES_SRC_DIR="$DOTFILES_DIR/dotfiles"
 readonly COMMON_DIR="$DOTFILES_SRC_DIR/common"
-readonly DOTFILES_SCRIPT_FILE="/var/tmp/install_dotfiles.sh"
+readonly INSTALLER_FILE="/var/tmp/install_dotfiles.sh"
 
 # URIs
 readonly DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
@@ -386,6 +386,7 @@ main() {
 		"HOST" "INITIALIZED" "TEST" "SUDO" "OS"
 
 	if [[ "$INITIALIZED" == "true" ]]; then
+		cd "$HOME_DIR"
 		"do_setup_${HOST}"
 	else
 		if [[ -n "$SUDO" ]]; then
@@ -409,14 +410,14 @@ main() {
 if [[ -z "${BASH_SOURCE[0]+x}" && "$INITIALIZED" == "false" ]]; then
 	if [[ "$TEST" == "true" ]]; then
 		printf "Copying script from %blocal%b repository...\n" "${COLOR["yellow"]}" "${COLOR["reset"]}"
-		cp "$DOTFILES_LOCAL_REPO/install.sh" "$DOTFILES_SCRIPT_FILE"
+		cp "$DOTFILES_LOCAL_REPO/install.sh" "$INSTALLER_FILE"
 	else
 		printf "Downloading script from %bGit%b repository...\n" "${COLOR["yellow"]}" "${COLOR["reset"]}"
-		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$DOTFILES_SCRIPT_FILE"
+		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$INSTALLER_FILE"
 	fi
-	chmod +x "$DOTFILES_SCRIPT_FILE"
+	chmod +x "$INSTALLER_FILE"
 
-	get_script_run_cmd "$DOTFILES_SCRIPT_FILE" "false" "run_cmd"
+	get_script_run_cmd "$INSTALLER_FILE" "false" "run_cmd"
 	printf "Restarting...\n\n"
 	"${run_cmd[@]}"
 else
