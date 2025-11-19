@@ -107,9 +107,17 @@ _log() {
 	local level="$1"
 	local msg="$2"
 
+	local caller="GLOBAL"
+	for funcname in "${FUNCNAME[@]}"; do
+		[[ "$funcname" == "_log" ]] && continue
+		[[ "$funcname" == "log_"* ]] && continue
+		caller="$funcname"
+		break
+	done
+
 	local timestamp
 	timestamp="$(date "+%Y-%m-%d %H:%M:%S")"
-	printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_COLOR["${level}"]}" "${level^^}" "${COLOR["reset"]}" "${FUNCNAME[2]}" "$msg" >&2
+	printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_COLOR["${level}"]}" "${level^^}" "${COLOR["reset"]}" "$caller" "$msg" >&2
 }
 log_debug() { _log "debug" "$1"; }
 log_info() { _log "info" "$1"; }
@@ -322,27 +330,17 @@ add_user() {
 	fi
 }
 
-clone_dotfiles_repo() {
-	local from="$1"
-
-	log_info "Clone dotfiles repository from $from..."
-	if [[ "$from" == "git" ]]; then
-		git clone -b main "$DOTFILES_REPO" $DOTFILES_DIR
-	elif [[ "$from" == "local" ]]; then
-		cp -r "$DOTFILES_LOCAL_REPO" "$DOTFILES_DIR"
-		chown -R "$USERNAME:$USERNAME" "$DOTFILES_DIR"
-	fi
-}
-
 ##################################################
 #                   Installers                   #
 ##################################################
 do_setup_vultr() {
 	if is_cmd_exist ufw; then
+		log_info "Uninstalling UFW..."
 		$SUDO ufw disable
 		remove_package "ufw"
 	fi
 
+	log_info "Installing Git..."
 	if ! is_cmd_exist git; then
 		install_package "git"
 	fi
@@ -350,16 +348,17 @@ do_setup_vultr() {
 	install_package "neovim"
 
 	if [[ "$TEST" == "true" ]]; then
-		clone_dotfiles_repo "local"
+		cp -r "$DOTFILES_LOCAL_REPO" "$DOTFILES_DIR"
+		chown -R "$USERNAME:$USERNAME" "$DOTFILES_DIR"
 	else
-		clone_dotfiles_repo "git"
+		git clone -b main "$DOTFILES_REPO" $DOTFILES_DIR
 	fi
 
 	link
 }
 
 do_setup_arch() {
-	log_error "do_setup_arch - Not implemented yet."
+	log_info "do_setup_arch - Not implemented yet.\nExiting..."
 }
 
 get_script_run_cmd() {
@@ -409,10 +408,10 @@ main() {
 # Download script
 if [[ -z "${BASH_SOURCE[0]+x}" && "$INITIALIZED" == "false" ]]; then
 	if [[ "$TEST" == "true" ]]; then
-		printf "Copying script from %blocal%b repository...\n" "${COLOR["yellow"]}" "${COLOR["reset"]}"
+		log_info "Copying script from ${COLOR["yellow"]}local${COLOR["reset"]} repository...\n"
 		cp "$DOTFILES_LOCAL_REPO/install.sh" "$INSTALLER_FILE"
 	else
-		printf "Downloading script from %bGit%b repository...\n" "${COLOR["yellow"]}" "${COLOR["reset"]}"
+		log_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository...\n"
 		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$INSTALLER_FILE"
 	fi
 	chmod +x "$INSTALLER_FILE"

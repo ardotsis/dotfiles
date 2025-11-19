@@ -6,10 +6,9 @@ ENV INSTALL_ARGS=${INSTALL_ARGS}
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y sudo ca-certificates curl tree
+    apt-get install -y sudo ca-certificates curl tree git
 
 COPY . /dotfiles
-RUN chmod +x /dotfiles/install.sh
 
 # Simulate run via curl
 CMD ["bash", "-c", "cat /dotfiles/install.sh | bash -s -- $INSTALL_ARGS"]
