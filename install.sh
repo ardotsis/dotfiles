@@ -386,6 +386,7 @@ main() {
 		"HOST" "INITIALIZED" "TEST" "SUDO" "OS"
 
 	if [[ "$INITIALIZED" == "true" ]]; then
+		log_debug "Change current directory to $HOME_DIR"
 		cd "$HOME_DIR"
 		"do_setup_${HOST}"
 	else
