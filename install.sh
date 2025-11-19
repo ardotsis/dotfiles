@@ -396,7 +396,7 @@ main() {
 		local passwd
 		log_info "Generating new password for $USERNAME..."
 		passwd="$(get_random_str 32)"
-		log_info "Adding $USERNAME..."
+		log_info "Creating $USERNAME..."
 		add_user "$passwd"
 
 		local run_cmd
