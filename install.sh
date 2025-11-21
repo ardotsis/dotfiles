@@ -163,6 +163,7 @@ get_random_str() {
 install_package() {
 	local pkg="$1"
 
+	log_info "Installing $1"
 	if [[ "$OS" == "debian" ]]; then
 		$SUDO apt-get install -y --no-install-recommends "$pkg"
 	fi
@@ -346,6 +347,7 @@ do_setup_vultr() {
 	fi
 
 	install_package "neovim"
+	install_package "zsh"
 
 	if [[ "$TEST" == "true" ]]; then
 		cp -r "$DOTFILES_LOCAL_REPO" "$DOTFILES_DIR"
