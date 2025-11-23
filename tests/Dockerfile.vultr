@@ -6,7 +6,27 @@ ENV INSTALL_ARGS=${INSTALL_ARGS}
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y sudo ca-certificates curl tree git
+    apt-get install -y \
+    # Basic libraries
+    openssh-server \
+    ca-certificates \
+    sudo \
+    curl \
+    # To skip installation process on test
+    bat \
+    exa \
+    fd-find \
+    fzf \
+    git \
+    htop \
+    httpie \
+    jq \
+    neovim \
+    peco \
+    ripgrep \
+    tree \
+    wget \
+    zsh
 
 COPY . /dotfiles
 

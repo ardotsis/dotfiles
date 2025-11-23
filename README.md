@@ -74,5 +74,3 @@ curl -fsSL "dotfiles.menhera.art" | bash -s -- -h arch
 
 - [ ] See this. (ar.sis only)
   - <https://github.com/ardotsis/dotfiles-old>
-
-死にたい なんでもいいから優しい言葉が欲しい

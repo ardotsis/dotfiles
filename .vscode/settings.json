@@ -17,6 +17,7 @@
   "[shellscript]": {
     "editor.defaultFormatter": "mkhl.shfmt"
   },
+  "chat.commandCenter.enabled": false,
   "code-runner.executorMap": {
     "shellscript": "  & \"C:\\Program Files\\Git\\bin\\bash.exe\""
   },
@@ -53,6 +54,15 @@
   },
   "inlineChat.lineNaturalLanguageHint": false,
   "telemetry.feedback.enabled": false,
+  "terminal.integrated.allowedLinkSchemes": [
+    "file",
+    "http",
+    "https",
+    "mailto",
+    "vscode",
+    "vscode-insiders",
+    "docker-desktop"
+  ],
   "terminal.integrated.enableMultiLinePasteWarning": "never",
   "terminal.integrated.stickyScroll.enabled": false,
   "terminal.integrated.tabs.enabled": false,
