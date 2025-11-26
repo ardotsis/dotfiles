@@ -7,28 +7,26 @@ ENV INSTALL_ARGS=${INSTALL_ARGS}
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y \
-    # Basic libraries
     openssh-server \
     ca-certificates \
     sudo \
     curl \
-    # To skip installation process on test
-    bat \
-    exa \
-    fd-find \
-    fzf \
-    git \
-    htop \
-    httpie \
-    jq \
-    neovim \
-    peco \
-    ripgrep \
-    tree \
-    wget \
+    # bat \
+    # exa \
+    # fd-find \
+    # fzf \
+    # git \
+    # htop \
+    # httpie \
+    # jq \
+    # neovim \
+    # peco \
+    # ripgrep \
+    # tree \
+    # wget \
     zsh
 
-COPY . /dotfiles
+COPY . /var/tmp/.dotfiles
 
 # Simulate run via curl
-CMD ["bash", "-c", "cat /dotfiles/install.sh | bash -s -- $INSTALL_ARGS"]
+CMD ["bash", "-c", "cat /var/tmp/.dotfiles/install.sh | bash -s -- $INSTALL_ARGS"]

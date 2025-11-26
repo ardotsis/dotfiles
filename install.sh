@@ -1,30 +1,19 @@
 #!/bin/bash
 set -e -u -o pipefail -C
 
-##################################################
-#                 Configurations                 #
-##################################################
-readonly INSTALL_USER="ardotsis"
+_parse_args() {
 
-# Paths
-readonly HOME_DIR="/home/$INSTALL_USER"
-readonly DOTFILES_DIR="$HOME_DIR/.dotfiles"
-readonly DOTFILES_SRC_DIR="$DOTFILES_DIR/dotfiles"
-readonly COMMON_DIR="$DOTFILES_SRC_DIR/common"
-readonly PACKAGES_FILE="$DOTFILES_SRC_DIR/packages.txt"
-readonly SECRET_FILE="${HOME_DIR}/DOTFILES_SECRETS"
-readonly INSTALLER_TMP_FILE="/var/tmp/install_dotfiles.sh"
-
-# URIs
-readonly DOTFILES_REPO="https://github.com/ardotsis/dotfiles.git"
-readonly DOTFILES_LOCAL_REPO="/dotfiles"
-readonly DOTFILES_SCRIPT_URL="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
+}
 
 # Parse script parameters
 while (("$#")); do
 	case "$1" in
 	"-h" | "--host")
 		readonly HOST="$2"
+		shift
+		;;
+	"-u" | "--username")
+		readonly _USERNAME="$2"
 		shift
 		;;
 	"-i" | "--initialized")
@@ -43,6 +32,11 @@ done
 
 if [[ -z "${HOST+x}" ]]; then
 	printf "Please specify the host name using '--host (-h)' parameter.\n"
+	exit 1
+fi
+
+if [[ -z "${_USERNAME+x}" ]]; then
+	printf "Please specify the username using '--username (-u)' parameter.\n"
 	exit 1
 fi
 
@@ -68,9 +62,6 @@ arch)
 	;;
 esac
 
-readonly HOST_DIR="$DOTFILES_SRC_DIR/hosts/$HOST"
-readonly HOST_PREFIX="${HOST^^}_"
-
 # Set sudo mode
 if [[ "$(id -u)" == "0" ]]; then
 	readonly SUDO=""
@@ -80,9 +71,33 @@ else
 	fi
 fi
 
-declare -A COLOR=(
-	["reset"]="\033[0m"
+readonly INSTALL_USER="$_USERNAME" # For readability
+readonly HOST_PREFIX="${HOST^^}_"
 
+declare -A SYSTEM_PATH
+SYSTEM_PATH["home"]="/home/$INSTALL_USER"
+SYSTEM_PATH["tmp"]="/var/tmp"
+SYSTEM_PATH["dotfiles_repo"]="${SYSTEM_PATH["home"]}/.dotfiles"
+SYSTEM_PATH["dotfiles_dev_data"]="${SYSTEM_PATH["tmp"]}/.dotfiles"
+SYSTEM_PATH["dotfiles_secret"]="${SYSTEM_PATH["home"]}/dotfiles_secret"
+SYSTEM_PATH["dotfiles_tmp_installer"]="${SYSTEM_PATH["tmp"]}/install_dotfiles.sh"
+declare -r SYSTEM_PATH
+
+declare -A DOTFILES_PATH
+DOTFILES_PATH["root"]="${SYSTEM_PATH["home"]}/.dotfiles"
+DOTFILES_PATH["src"]="${DOTFILES_PATH["root"]}/dotfiles"
+DOTFILES_PATH["common"]="${DOTFILES_PATH["src"]}/common"
+DOTFILES_PATH["host"]="${DOTFILES_PATH["src"]}/hosts/$HOST"
+DOTFILES_PATH["packages"]="${DOTFILES_PATH["src"]}/packages.txt"
+declare -r DOTFILES_PATH
+
+declare -A URL
+URL["dotfiles_repo"]="https://github.com/ardotsis/dotfiles.git"
+URL["dotfiles_installer"]="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
+declare -r URL
+
+declare -Ar COLOR=(
+	["reset"]="\033[0m"
 	["black"]="\033[0;30m"
 	["red"]="\033[0;31m"
 	["green"]="\033[0;32m"
@@ -93,7 +108,7 @@ declare -A COLOR=(
 	["white"]="\033[0;37m"
 )
 
-declare -A LOG_COLOR=(
+declare -Ar LOG_COLOR=(
 	["debug"]="${COLOR["white"]}"
 	["info"]="${COLOR["green"]}"
 	["warn"]="${COLOR["yellow"]}"
@@ -181,36 +196,42 @@ remove_package() {
 	fi
 }
 
-get_home_type() {
-	local path="$1"
+add_user() {
+	local username="$1"
+	local passwd="$2"
 
-	if [[ "$path" == "$COMMON_DIR"* ]]; then
-		printf "COMMON"
-	elif [[ "$path" == "$HOST_DIR"* ]]; then
-		printf "HOST"
-	elif [[ "$path" == "$HOME_DIR"* ]]; then
-		printf "HOME"
-	else
-		log_error "Unknown home type for path: $path"
-		exit 1
+	if [[ "$OS" == "debian" ]]; then
+		$SUDO useradd -m -s "/bin/bash" -G "sudo" "$username"
+		printf "%s:%s" "$username" "$passwd" | $SUDO chpasswd
+		printf "%s ALL=(ALL) NOPASSWD: ALL\n" "$username" >"/etc/sudoers.d/$username"
 	fi
 }
 
+##################################################
+#                   Installers                   #
+##################################################
 convert_home_path() {
 	local original_path="$1"
 	local to="$2"
 
-	local from
-	from="$(get_home_type "$original_path")"
-	local from_var="${from}_DIR"
-	local to_var="${to^^}_DIR"
+	# shellcheck disable=SC2034
+	local home="${SYSTEM_PATH["home"]}"
+	local common="${DOTFILES_PATH["common"]}"
+	local host="${DOTFILES_PATH["host"]}"
 
-	# Bash parameter substitution (without sed)
-	printf "%s" "${original_path/#${!from_var}/${!to_var}}"
+	local from
+	for home_type in "home" "common" "host"; do
+		if [[ "$original_path" == "${!home_type}"* ]]; then
+			from="$home_type"
+		fi
+	done
+
+	# Convert home position
+	printf "%s" "${original_path/#${!from}/${!to}}"
 }
 
 link() {
-	local a_home_dir="${1-$HOME_DIR}"
+	local a_home_dir="${1-${SYSTEM_PATH["home"]}}"
 	local dir_type="${2:-}"
 	local prefix_base="${3:-}"
 
@@ -275,7 +296,7 @@ link() {
 	for item_type in "union" "host" "common"; do
 		local -n items="${item_type}_items"
 		for item in "${items[@]}"; do
-			[[ -z "$item" ]] && continue # TODO: Remove ("") empty element from arr b4 for
+			[[ -z "$item" ]] && continue # TODO: Remove ("") empty element from arr before for loop
 			local as_home_item="${a_home_dir}/${item}"
 			# shellcheck disable=SC2034
 			local as_common_item="${as_common_dir}/${item}"
@@ -322,19 +343,6 @@ link() {
 	done
 }
 
-add_user() {
-	local passwd="$1"
-
-	if [[ "$OS" == "debian" ]]; then
-		$SUDO useradd -m -s "/bin/bash" -G "sudo" "$INSTALL_USER"
-		printf "%s:%s" "$INSTALL_USER" "$passwd" | $SUDO chpasswd
-		printf "%s ALL=(ALL) NOPASSWD: ALL\n" "$INSTALL_USER" >"/etc/sudoers.d/$INSTALL_USER"
-	fi
-}
-
-##################################################
-#                   Installers                   #
-##################################################
 do_setup_vultr() {
 	# Clone dotfiles repository
 	if ! is_cmd_exist git; then
@@ -343,10 +351,10 @@ do_setup_vultr() {
 	fi
 
 	if [[ "$TEST" == "true" ]]; then
-		cp -r "$DOTFILES_LOCAL_REPO" "$DOTFILES_DIR"
-		chown -R "$INSTALL_USER:$INSTALL_USER" "$DOTFILES_DIR"
+		cp -r "${SYSTEM_PATH["dotfiles_dev_data"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
+		chown -R "$INSTALL_USER:$INSTALL_USER" "${SYSTEM_PATH["dotfiles_repo"]}"
 	else
-		git clone -b main "$DOTFILES_REPO" $DOTFILES_DIR
+		git clone -b main "${URL["dotfiles_repo"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
 	fi
 
 	log_info "Start linking..."
@@ -358,7 +366,7 @@ do_setup_vultr() {
 			log_info "Installing $pkg..."
 			install_package "$pkg"
 		fi
-	done <"$PACKAGES_FILE"
+	done <"${DOTFILES_PATH["packages"]}"
 
 	# Configure sshd
 	if is_cmd_exist ufw; then
@@ -368,14 +376,14 @@ do_setup_vultr() {
 	fi
 
 	log_info "Configuring sshd..."
-	local template_dir="$HOST_DIR/.template"
+	local template_dir="${DOTFILES_PATH["host"]}/.template"
 	local openssh_dir="/etc/ssh"
 	[[ -e "${openssh_dir}/sshd_config" ]] && $SUDO rm "${openssh_dir}/sshd_config"
 	$SUDO cp "${template_dir}/openssh-server/sshd_config" "${openssh_dir}/sshd_config"
 	local port_num="$((1024 + RANDOM % (65535 - 1024 + 1)))"
 	sudo sed -i "s/^Port [0-9]\+/Port $port_num/" "${openssh_dir}/sshd_config"
-	printf "SSH port: %s\n" "$port_num" >>"$SECRET_FILE"
-	local ssh_dir="${HOME_DIR}/.ssh"
+	printf "SSH port: %s\n" "$port_num" >>"${SYSTEM_PATH["dotfiles_secret"]}"
+	local ssh_dir="${SYSTEM_PATH["home"]}/.ssh"
 	[[ ! -e "$ssh_dir" ]] && mkdir "$ssh_dir"
 	chmod 700 "$ssh_dir"
 
@@ -398,6 +406,8 @@ get_script_run_cmd() {
 		"$script_path"
 		"--host"
 		"$HOST"
+		"--username"
+		"$INSTALL_USER"
 	)
 	[[ "$initialized" == "true" ]] && arr_ref+=("--initialized") || true
 	[[ "$TEST" == "true" ]] && arr_ref+=("--test") || true
@@ -407,13 +417,13 @@ main() {
 	log_info "Start installation script as ${COLOR["yellow"]}$(whoami)${COLOR["reset"]}..."
 
 	log_vars \
-		"INSTALL_USER" "DOTFILES_DIR" "DOTFILES_SRC_DIR" \
-		"COMMON_DIR" "HOST_DIR" "HOST_PREFIX" \
+		"INSTALL_USER" "DOTFILES_PATH[\"src\"]" \
+		"DOTFILES_PATH[\"host\"]" "HOST_PREFIX" \
 		"HOST" "INITIALIZED" "TEST" "SUDO" "OS"
 
 	if [[ "$INITIALIZED" == "true" ]]; then
-		log_debug "Change current directory to $HOME_DIR"
-		cd "$HOME_DIR"
+		log_debug "Change current directory to ${SYSTEM_PATH["home"]}"
+		cd "${SYSTEM_PATH["home"]}"
 		"do_setup_${HOST}"
 	else
 		if [[ -n "$SUDO" ]]; then
@@ -423,13 +433,14 @@ main() {
 		log_info "Create ${COLOR["yellow"]}${INSTALL_USER}${COLOR["reset"]}"
 		local passwd
 		passwd="$(get_random_str 64)"
-		add_user "$passwd"
 
-		log_info "Create secret file on $SECRET_FILE"
-		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"$SECRET_FILE"
-		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"$SECRET_FILE"
-		chown "$INSTALL_USER" "$SECRET_FILE"
-		chmod 600 "$SECRET_FILE"
+		add_user "$INSTALL_USER" "$passwd"
+
+		log_info "Create secret file on ${SYSTEM_PATH["dotfiles_secret"]}"
+		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"${SYSTEM_PATH["dotfiles_secret"]}"
+		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"${SYSTEM_PATH["dotfiles_secret"]}"
+		chown "$INSTALL_USER" "${SYSTEM_PATH["dotfiles_secret"]}"
+		chmod 600 "${SYSTEM_PATH["dotfiles_secret"]}"
 
 		local run_cmd
 		get_script_run_cmd "$(get_script_path)" "true" "run_cmd"
@@ -443,15 +454,16 @@ main() {
 if [[ -z "${BASH_SOURCE[0]+x}" && "$INITIALIZED" == "false" ]]; then
 	# Download script
 	if [[ "$TEST" == "true" ]]; then
-		log_info "Copying script from ${COLOR["yellow"]}local${COLOR["reset"]} repository..."
-		cp "$DOTFILES_LOCAL_REPO/install.sh" "$INSTALLER_TMP_FILE"
+		dev_install_file="${SYSTEM_PATH["dotfiles_dev_data"]}/install.sh"
+		log_info "Copying script from ${COLOR["yellow"]}$dev_install_file${COLOR["reset"]}..."
+		cp "$dev_install_file" "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
 	else
 		log_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository..."
-		curl -fsSL "$DOTFILES_SCRIPT_URL" -o "$INSTALLER_TMP_FILE"
+		curl -fsSL "${URL["dotfiles_installer"]}" -o "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
 	fi
-	chmod +x "$INSTALLER_TMP_FILE"
+	chmod +x "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
 
-	get_script_run_cmd "$INSTALLER_TMP_FILE" "false" "run_cmd"
+	get_script_run_cmd "${SYSTEM_PATH["dotfiles_tmp_installer"]}" "false" "run_cmd"
 	printf "Restarting...\n\n"
 	"${run_cmd[@]}"
 else
