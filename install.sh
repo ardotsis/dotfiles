@@ -82,7 +82,7 @@ SYSTEM_PATH["tmp"]="/var/tmp"
 SYSTEM_PATH["dotfiles_repo"]="${SYSTEM_PATH["home"]}/.dotfiles"
 SYSTEM_PATH["dotfiles_dev_a_param"]="${SYSTEM_PATH["tmp"]}/.dotfiles"
 SYSTEM_PATH["dotfiles_secret"]="${SYSTEM_PATH["home"]}/dotfiles_secret"
-SYSTEM_PATH["dotfiles_tmp_param_installer"]="${SYSTEM_PATH["tmp"]}/install_dotfiles.sh"
+SYSTEM_PATH["dotfiles_tmp_installer"]="${SYSTEM_PATH["tmp"]}/install_dotfiles.sh"
 declare -r SYSTEM_PATH
 
 declare -A DOTFILES_PATH
@@ -458,14 +458,14 @@ if [[ -z "${BASH_SOURCE[0]+x}" && "$INITIALIZED" == "false" ]]; then
 	if [[ "$TEST" == "true" ]]; then
 		dev_param_install_file="${SYSTEM_PATH["dotfiles_dev_a_param"]}/install.sh"
 		log_param_info "Copying script from ${COLOR["yellow"]}$dev_param_install_file${COLOR["reset"]}..."
-		cp "$dev_param_install_file" "${SYSTEM_PATH["dotfiles_tmp_param_installer"]}"
+		cp "$dev_param_install_file" "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
 	else
 		log_param_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository..."
-		curl -fsSL "${URL["dotfiles_param_installer"]}" -o "${SYSTEM_PATH["dotfiles_tmp_param_installer"]}"
+		curl -fsSL "${URL["dotfiles_param_installer"]}" -o "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
 	fi
-	chmod +x "${SYSTEM_PATH["dotfiles_tmp_param_installer"]}"
+	chmod +x "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
 
-	get_script_run_cmd "${SYSTEM_PATH["dotfiles_tmp_param_installer"]}" "false" "run_cmd"
+	get_script_run_cmd "${SYSTEM_PATH["dotfiles_tmp_installer"]}" "false" "run_cmd"
 	printf "Restarting...\n\n"
 	"${run_cmd[@]}"
 else
