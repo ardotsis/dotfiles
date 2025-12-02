@@ -82,7 +82,7 @@ declare -A SYSTEM_PATH
 SYSTEM_PATH["home"]="/home/$INSTALL_USER"
 SYSTEM_PATH["tmp"]="/var/tmp"
 SYSTEM_PATH["dotfiles_repo"]="${SYSTEM_PATH["home"]}/.dotfiles"
-SYSTEM_PATH["dotfiles_dev_a"]="${SYSTEM_PATH["tmp"]}/.dotfiles"
+SYSTEM_PATH["dotfiles_dev_data"]="${SYSTEM_PATH["tmp"]}/.dotfiles"
 SYSTEM_PATH["dotfiles_secret"]="${SYSTEM_PATH["home"]}/dotfiles_secret"
 SYSTEM_PATH["dotfiles_tmp_installer"]="${SYSTEM_PATH["tmp"]}/install_dotfiles.sh"
 declare -r SYSTEM_PATH
@@ -355,7 +355,7 @@ do_setup_vultr() {
 	fi
 
 	if [[ "$TEST" == "true" ]]; then
-		cp -r "${SYSTEM_PATH["dotfiles_dev_a"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
+		cp -r "${SYSTEM_PATH["dotfiles_dev_data"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
 		chown -R "$INSTALL_USER:$INSTALL_USER" "${SYSTEM_PATH["dotfiles_repo"]}"
 	else
 		git clone -b main "${URL["dotfiles_repo"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
@@ -454,7 +454,7 @@ main() {
 if [[ -z "${BASH_SOURCE[0]+x}" && "$INITIALIZED" == "false" ]]; then
 	# Download script
 	if [[ "$TEST" == "true" ]]; then
-		dev_install_file="${SYSTEM_PATH["dotfiles_dev_a"]}/install.sh"
+		dev_install_file="${SYSTEM_PATH["dotfiles_dev_data"]}/install.sh"
 		log_info "Copying script from ${COLOR["yellow"]}$dev_install_file${COLOR["reset"]}..."
 		cp "$dev_install_file" "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
 	else
