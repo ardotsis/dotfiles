@@ -5,6 +5,8 @@
 
 _simple / minimal / suckless / secure / free / reproducible / efficient / unique / kawaii / menhera_
 
+- Follow the AI 30% rule. Use your brain first. Use AI for studying and repetitive task.
+
 ## Install
 
 ### `ardotsis@vultr`
@@ -52,6 +54,10 @@ curl -fsSL "dotfiles.menhera.art" | bash -s -- -h arch
 
 ## ToDo
 
+- [ ] Note daily tools (e.g., Obisidian, LibreWolf)
+
+- [ ] Decide backup routine. (e.g., PC, iPhone)
+
 - [ ] Use a tools made by Rust.
   - zsh
 
@@ -74,5 +80,3 @@ curl -fsSL "dotfiles.menhera.art" | bash -s -- -h arch
 
 - [ ] See this. (ar.sis only)
   - <https://github.com/ardotsis/dotfiles-old>
-
-死にたい なんでもいいから優しい言葉が欲しい

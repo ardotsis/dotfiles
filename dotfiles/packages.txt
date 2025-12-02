@@ -1,13 +1,4 @@
 git
-curl
 wget
 neovim
 zsh
-htop
-ripgrep
-fd-find
-exa
-bat
-fzf
-tree
-jq
