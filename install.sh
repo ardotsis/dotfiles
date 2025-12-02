@@ -1,54 +1,56 @@
 #!/bin/bash
 set -e -u -o pipefail -C
 
-_parse_args() {
+declare -a _ARGS=("$@")
+declare -ar _PARAM_0=("HOST" "--host" "-h" "value" "")
+declare -ar _PARAM_1=("_USERNAME" "--username" "-u" "value" "ardotsis")
+declare -ar _PARAM_2=("INITIALIZED" "--initialized" "-i" "flag" "false")
+declare -ar _PARAM_3=("TEST" "--test" "-t" "flag" "false")
 
-}
+_param_i=0
+while :; do
+	_param_var="_PARAM_${_param_i}"
+	[[ -z "${!_param_var+x}" ]] && break
 
-# Parse script parameters
-while (("$#")); do
-	case "$1" in
-	"-h" | "--host")
-		readonly HOST="$2"
-		shift
-		;;
-	"-u" | "--username")
-		readonly _USERNAME="$2"
-		shift
-		;;
-	"-i" | "--initialized")
-		readonly INITIALIZED="true"
-		;;
-	"-t" | "--test")
-		readonly TEST="true"
-		;;
-	*)
-		printf "Unknown parameter: '%s'" "$1\n"
-		exit 1
-		;;
-	esac
-	shift
+	declare -n _a_param="$_param_var"
+	_global_var="${_a_param[0]}"
+	_long_name="${_a_param[1]}"
+	_short_name="${_a_param[2]}"
+	_param_type="${_a_param[3]}"
+	_default_value="${_a_param[4]}"
+
+	_arg_index=0
+	while ((_arg_index < ${#_ARGS[@]})); do
+		_some_arg="${_ARGS[$_arg_index]}"
+		if [[ "$_some_arg" == "$_long_name" || "$_some_arg" == "$_short_name" ]]; then
+			if [[ "$_param_type" == "value" ]]; then
+				_value_index=$(("$_arg_index" + 1))
+				_value="${_ARGS[$_value_index]}" # todo: if unbound
+				printf "Set value: %s -> %s\n" "$_global_var" "$_value"
+				readonly "$_global_var"="$_value"
+				_ARGS=("${_ARGS[@]:0:$_arg_index}" "${_ARGS[@]:$_arg_index+2}")
+			elif [[ "$_param_type" == "flag" ]]; then
+				readonly "$_global_var"="true"
+			fi
+			break
+		fi
+		_arg_index=$(("$_arg_index" + 1))
+	done
+
+	if [[ -z "${!_global_var+x}" ]]; then
+		if [[ -n "$_default_value" ]]; then
+			printf "Set default value: %s -> %s\n" "$_global_var" "$_default_value"
+			readonly "$_global_var"="$_default_value"
+		else
+			printf "Please provide a value for '%s' (%s) parameter.\n" "$_long_name" "$_short_name"
+			exit 1
+		fi
+	fi
+
+	_param_i=$(("$_param_i" + 1))
 done
 
-if [[ -z "${HOST+x}" ]]; then
-	printf "Please specify the host name using '--host (-h)' parameter.\n"
-	exit 1
-fi
-
-if [[ -z "${_USERNAME+x}" ]]; then
-	printf "Please specify the username using '--username (-u)' parameter.\n"
-	exit 1
-fi
-
-if [[ -z "${INITIALIZED+x}" ]]; then
-	readonly INITIALIZED="false"
-fi
-
-if [[ -z "${TEST+x}" ]]; then
-	readonly TEST="false"
-fi
-
-# Validate host
+# shellcheck disable=SC2153
 case "$HOST" in
 vultr)
 	readonly OS="debian"
@@ -78,9 +80,9 @@ declare -A SYSTEM_PATH
 SYSTEM_PATH["home"]="/home/$INSTALL_USER"
 SYSTEM_PATH["tmp"]="/var/tmp"
 SYSTEM_PATH["dotfiles_repo"]="${SYSTEM_PATH["home"]}/.dotfiles"
-SYSTEM_PATH["dotfiles_dev_data"]="${SYSTEM_PATH["tmp"]}/.dotfiles"
+SYSTEM_PATH["dotfiles_dev_a_param"]="${SYSTEM_PATH["tmp"]}/.dotfiles"
 SYSTEM_PATH["dotfiles_secret"]="${SYSTEM_PATH["home"]}/dotfiles_secret"
-SYSTEM_PATH["dotfiles_tmp_installer"]="${SYSTEM_PATH["tmp"]}/install_dotfiles.sh"
+SYSTEM_PATH["dotfiles_tmp_param_installer"]="${SYSTEM_PATH["tmp"]}/install_dotfiles.sh"
 declare -r SYSTEM_PATH
 
 declare -A DOTFILES_PATH
@@ -93,7 +95,7 @@ declare -r DOTFILES_PATH
 
 declare -A URL
 URL["dotfiles_repo"]="https://github.com/ardotsis/dotfiles.git"
-URL["dotfiles_installer"]="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
+URL["dotfiles_param_installer"]="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
 declare -r URL
 
 declare -Ar COLOR=(
@@ -137,7 +139,7 @@ _log() {
 	printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_COLOR["${level}"]}" "${level^^}" "${COLOR["reset"]}" "$caller" "$msg" >&2
 }
 log_debug() { _log "debug" "$1"; }
-log_info() { _log "info" "$1"; }
+log_param_info() { _log "info" "$1"; }
 log_warn() { _log "warn" "$1"; }
 log_error() { _log "error" "$1"; }
 log_vars() {
@@ -242,7 +244,7 @@ link() {
 	as_common_dir="$(convert_home_path "$a_home_dir" "common")"
 	log_vars "a_home_dir" "as_host_dir" "as_common_dir"
 
-	map_dir_items() {
+	map_dir_param_items() {
 		local dir_path="$1"
 		local -n arr_ref="$2"
 
@@ -251,23 +253,23 @@ link() {
 			<(find "$dir_path" -mindepth 1 -maxdepth 1 -printf "%f\0")
 	}
 
-	local pre_host_items=() pre_common_items=()
+	local pre_host_param_items=() pre_common_param_items=()
 	if [[ -n "$dir_type" ]]; then
 		local as_dir_var="as_${dir_type}_dir"
-		map_dir_items "${!as_dir_var}" "pre_${dir_type}_items"
+		map_dir_param_items "${!as_dir_var}" "pre_${dir_type}_param_items"
 	else
-		map_dir_items "$as_host_dir" "pre_host_items"
-		map_dir_items "$as_common_dir" "pre_common_items"
+		map_dir_param_items "$as_host_dir" "pre_host_param_items"
+		map_dir_param_items "$as_common_dir" "pre_common_param_items"
 
 		# Remove host prefixed items from common items
-		for h_i in "${!pre_host_items[@]}"; do
-			local path="${pre_host_items[$h_i]}"
+		for h_param_i in "${!pre_host_param_items[@]}"; do
+			local path="${pre_host_param_items[$h_param_i]}"
 			local basename_="${path##*/}"
 			if [[ "$basename_" == "$HOST_PREFIX"* ]]; then
-				for c_i in "${!pre_common_items[@]}"; do
-					if [[ "${pre_common_items[$c_i]}" == "${basename_#"${HOST_PREFIX}"}" ]]; then
-						log_info "Detect host prefer item: '${pre_common_items[$c_i]}'"
-						unset "pre_common_items[$c_i]"
+				for c_param_i in "${!pre_common_param_items[@]}"; do
+					if [[ "${pre_common_param_items[$c_param_i]}" == "${basename_#"${HOST_PREFIX}"}" ]]; then
+						log_param_info "Detect host prefer item: '${pre_common_param_items[$c_param_i]}'"
+						unset "pre_common_param_items[$c_param_i]"
 						break
 					fi
 				done
@@ -275,69 +277,69 @@ link() {
 		done
 	fi
 
-	log_vars "pre_host_items[@]" "pre_common_items[@]"
+	log_vars "pre_host_param_items[@]" "pre_common_param_items[@]"
 
-	set_pre_items() {
+	set_pre_param_items() {
 		local -n arr_ref="$1"
 		local mode="$2"
 
 		mapfile -d $'\0' "${!arr_ref}" < <(comm "$mode" -z \
-			<(printf "%s\0" "${pre_host_items[@]}" | sort -z) \
-			<(printf "%s\0" "${pre_common_items[@]}" | sort -z))
+			<(printf "%s\0" "${pre_host_param_items[@]}" | sort -z) \
+			<(printf "%s\0" "${pre_common_param_items[@]}" | sort -z))
 	}
 
 	# shellcheck disable=SC2034
-	local union_items=() host_items=() common_items=()
-	set_pre_items "union_items" "-12"
-	set_pre_items "host_items" "-23"
-	set_pre_items "common_items" "-13"
-	log_vars "union_items[@]" "host_items[@]" "common_items[@]"
+	local union_param_items=() host_param_items=() common_param_items=()
+	set_pre_param_items "union_param_items" "-12"
+	set_pre_param_items "host_param_items" "-23"
+	set_pre_param_items "common_param_items" "-13"
+	log_vars "union_param_items[@]" "host_param_items[@]" "common_param_items[@]"
 
 	for item_type in "union" "host" "common"; do
-		local -n items="${item_type}_items"
+		local -n items="${item_type}_param_items"
 		for item in "${items[@]}"; do
 			[[ -z "$item" ]] && continue # TODO: Remove ("") empty element from arr before for loop
-			local as_home_item="${a_home_dir}/${item}"
+			local as_home_param_item="${a_home_dir}/${item}"
 			# shellcheck disable=SC2034
-			local as_common_item="${as_common_dir}/${item}"
+			local as_common_param_item="${as_common_dir}/${item}"
 			# shellcheck disable=SC2034
-			local as_host_item="${as_host_dir}/${item}"
+			local as_host_param_item="${as_host_dir}/${item}"
 
 			if [[ "$item_type" == "union" ]]; then
-				local as_var="as_host_item"
+				local as_var="as_host_param_item"
 			else
-				local as_var="as_${item_type}_item"
+				local as_var="as_${item_type}_param_item"
 			fi
-			local actual_item="${!as_var}"
+			local actual_param_item="${!as_var}"
 
-			log_vars "item_type" "item" "as_var" "actual_item"
+			log_vars "item_type" "item" "as_var" "actual_param_item"
 			# DIRECTORY
-			if [[ -d "$actual_item" ]]; then
-				log_info "Create directory: '$as_home_item'"
+			if [[ -d "$actual_param_item" ]]; then
+				log_param_info "Create directory: '$as_home_param_item'"
 				if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
-					renamed_as_home_item="${a_home_dir}/${item#"${HOST_PREFIX}"}"
-					mkdir -p "$renamed_as_home_item"
-					link "$as_home_item" "$item_type" "$as_home_item"
+					renamed_as_home_param_item="${a_home_dir}/${item#"${HOST_PREFIX}"}"
+					mkdir -p "$renamed_as_home_param_item"
+					link "$as_home_param_item" "$item_type" "$as_home_param_item"
 				else
-					mkdir -p "$as_home_item"
+					mkdir -p "$as_home_param_item"
 					if [[ "$item_type" == "union" ]]; then
-						link "$as_home_item"
+						link "$as_home_param_item"
 					else
 						# Exclusive home directory
-						link "$as_home_item" "$item_type"
+						link "$as_home_param_item" "$item_type"
 					fi
 				fi
 			# FILE
-			elif [[ -f "$actual_item" ]]; then
+			elif [[ -f "$actual_param_item" ]]; then
 				if [[ "$item_type" == "host" && -n "$prefix_base" ]]; then
 					log_debug "Rename home link"
 					# todo cache
 					local basename_="${prefix_base##*/}"
 					local original_dir="${basename_#"${HOST_PREFIX}"}"
-					local as_home_item="${a_home_dir%/*}/${original_dir}"
+					local as_home_param_item="${a_home_dir%/*}/${original_dir}"
 				fi
-				log_info "Link ${item_type^^} file: $actual_item -> $as_home_item"
-				ln -sf "$actual_item" "$as_home_item"
+				log_param_info "Link ${item_type^^} file: $actual_param_item -> $as_home_param_item"
+				ln -sf "$actual_param_item" "$as_home_param_item"
 			fi
 		done
 	done
@@ -346,36 +348,36 @@ link() {
 do_setup_vultr() {
 	# Clone dotfiles repository
 	if ! is_cmd_exist git; then
-		log_info "Installing Git..."
+		log_param_info "Installing Git..."
 		install_package "git"
 	fi
 
 	if [[ "$TEST" == "true" ]]; then
-		cp -r "${SYSTEM_PATH["dotfiles_dev_data"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
+		cp -r "${SYSTEM_PATH["dotfiles_dev_a_param"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
 		chown -R "$INSTALL_USER:$INSTALL_USER" "${SYSTEM_PATH["dotfiles_repo"]}"
 	else
 		git clone -b main "${URL["dotfiles_repo"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
 	fi
 
-	log_info "Start linking..."
+	log_param_info "Start linking..."
 	link
 
-	log_info "Start package installation..."
+	log_param_info "Start package installation..."
 	while read -r pkg; do
 		if ! is_cmd_exist "$pkg"; then
-			log_info "Installing $pkg..."
+			log_param_info "Installing $pkg..."
 			install_package "$pkg"
 		fi
 	done <"${DOTFILES_PATH["packages"]}"
 
 	# Configure sshd
 	if is_cmd_exist ufw; then
-		log_info "Removing UFW..."
+		log_param_info "Removing UFW..."
 		$SUDO ufw disable
 		remove_package "ufw"
 	fi
 
-	log_info "Configuring sshd..."
+	log_param_info "Configuring sshd..."
 	local template_dir="${DOTFILES_PATH["host"]}/.template"
 	local openssh_dir="/etc/ssh"
 	[[ -e "${openssh_dir}/sshd_config" ]] && $SUDO rm "${openssh_dir}/sshd_config"
@@ -388,7 +390,7 @@ do_setup_vultr() {
 	chmod 700 "$ssh_dir"
 
 	if [[ "$TEST" == "false" ]]; then
-		log_info "Restarting sshd..."
+		log_param_info "Restarting sshd..."
 		$SUDO systemctl restart sshd
 	fi
 }
@@ -414,7 +416,7 @@ get_script_run_cmd() {
 }
 
 main() {
-	log_info "Start installation script as ${COLOR["yellow"]}$(whoami)${COLOR["reset"]}..."
+	log_param_info "Start installation script as ${COLOR["yellow"]}$(whoami)${COLOR["reset"]}..."
 
 	log_vars \
 		"INSTALL_USER" "DOTFILES_PATH[\"src\"]" \
@@ -430,13 +432,13 @@ main() {
 			sudo -v
 		fi
 
-		log_info "Create ${COLOR["yellow"]}${INSTALL_USER}${COLOR["reset"]}"
+		log_param_info "Create ${COLOR["yellow"]}${INSTALL_USER}${COLOR["reset"]}"
 		local passwd
 		passwd="$(get_random_str 64)"
 
 		add_user "$INSTALL_USER" "$passwd"
 
-		log_info "Create secret file on ${SYSTEM_PATH["dotfiles_secret"]}"
+		log_param_info "Create secret file on ${SYSTEM_PATH["dotfiles_secret"]}"
 		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"${SYSTEM_PATH["dotfiles_secret"]}"
 		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"${SYSTEM_PATH["dotfiles_secret"]}"
 		chown "$INSTALL_USER" "${SYSTEM_PATH["dotfiles_secret"]}"
@@ -446,7 +448,7 @@ main() {
 		get_script_run_cmd "$(get_script_path)" "true" "run_cmd"
 		log_vars "run_cmd[@]"
 
-		log_info "Done user creation"
+		log_param_info "Done user creation"
 		sudo -u "$INSTALL_USER" -- "${run_cmd[@]}"
 	fi
 }
@@ -454,16 +456,16 @@ main() {
 if [[ -z "${BASH_SOURCE[0]+x}" && "$INITIALIZED" == "false" ]]; then
 	# Download script
 	if [[ "$TEST" == "true" ]]; then
-		dev_install_file="${SYSTEM_PATH["dotfiles_dev_data"]}/install.sh"
-		log_info "Copying script from ${COLOR["yellow"]}$dev_install_file${COLOR["reset"]}..."
-		cp "$dev_install_file" "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
+		dev_param_install_file="${SYSTEM_PATH["dotfiles_dev_a_param"]}/install.sh"
+		log_param_info "Copying script from ${COLOR["yellow"]}$dev_param_install_file${COLOR["reset"]}..."
+		cp "$dev_param_install_file" "${SYSTEM_PATH["dotfiles_tmp_param_installer"]}"
 	else
-		log_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository..."
-		curl -fsSL "${URL["dotfiles_installer"]}" -o "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
+		log_param_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository..."
+		curl -fsSL "${URL["dotfiles_param_installer"]}" -o "${SYSTEM_PATH["dotfiles_tmp_param_installer"]}"
 	fi
-	chmod +x "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
+	chmod +x "${SYSTEM_PATH["dotfiles_tmp_param_installer"]}"
 
-	get_script_run_cmd "${SYSTEM_PATH["dotfiles_tmp_installer"]}" "false" "run_cmd"
+	get_script_run_cmd "${SYSTEM_PATH["dotfiles_tmp_param_installer"]}" "false" "run_cmd"
 	printf "Restarting...\n\n"
 	"${run_cmd[@]}"
 else

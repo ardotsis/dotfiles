@@ -54,6 +54,10 @@ curl -fsSL "dotfiles.menhera.art" | bash -s -- -h arch
 
 ## ToDo
 
+- [ ] Note daily tools (e.g., Obisidian, LibreWolf)
+
+- [ ] Decide backup routine. (e.g., PC, iPhone)
+
 - [ ] Use a tools made by Rust.
   - zsh
 
