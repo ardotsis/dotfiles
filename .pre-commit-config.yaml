@@ -9,4 +9,3 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
-        exclude: ^\.vscode/settings\.json$

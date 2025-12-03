@@ -1,4 +1,10 @@
 {
+  "[css]": {
+    "editor.defaultFormatter": "stylelint.vscode-stylelint"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "[json]": {
     "editor.codeActionsOnSave": {
       "source.sort.json": "always"
@@ -32,6 +38,7 @@
   ],
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
+  "editor.formatOnType": true,
   // editor.lightbulb.enabled: https://github.com/microsoft/vscode-copilot-release/issues/735#issuecomment-1886589021
   "editor.lightbulb.enabled": "off",
   "editor.minimap.enabled": true,
@@ -47,10 +54,10 @@
   "github.copilot.editor.enableCodeActions": false,
   "github.copilot.enable": {
     "*": false,
-    "plaintext": false,
     "markdown": false,
+    "plaintext": false,
     "scminput": false,
-    "shellscript": false
+    "shellscript": true
   },
   "inlineChat.lineNaturalLanguageHint": false,
   "telemetry.feedback.enabled": false,
@@ -72,6 +79,7 @@
     }
   },
   "vscode-neovim.neovimExecutablePaths.win32": "C:\\Program Files\\Neovim\\bin\\nvim.exe",
+  "window.menuBarVisibility": "compact",
   "workbench.colorTheme": "Rouge 2",
   "workbench.iconTheme": "material-icon-theme"
 }
