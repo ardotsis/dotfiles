@@ -1,0 +1,24 @@
+[
+  {
+    "command": "github.copilot.completions.toggle",
+    "key": "f1"
+  },
+  {
+    "command": "-workbench.action.terminal.toggleTerminal",
+    "key": "ctrl+`"
+  },
+  {
+    "command": "workbench.action.focusActiveEditorGroup",
+    "key": "ctrl+`",
+    "when": "terminalFocus"
+  },
+  {
+    "command": "workbench.action.terminal.focus",
+    "key": "ctrl+`",
+    "when": "editorFocus"
+  },
+  {
+    "command": "-workbench.action.showCommands",
+    "key": "f1"
+  },
+]
