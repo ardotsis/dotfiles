@@ -1,9 +1,9 @@
 # ar.sis's dotfiles
 
+_simple / minimal / suckless / secure / free / reproducible / efficient / unique / kawaii / menhera_
+
 > [!WARNING]
 > This project is still work in progress. So please do not expect to work. Thank you 🩷
-
-_simple / minimal / suckless / secure / free / reproducible / efficient / unique / kawaii / menhera_
 
 ## Install
 
