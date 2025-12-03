@@ -5,8 +5,6 @@
 
 _simple / minimal / suckless / secure / free / reproducible / efficient / unique / kawaii / menhera_
 
-- Follow the AI 30% rule. Use your brain first. Use AI for studying and repetitive task.
-
 ## Install
 
 ### `ardotsis@vultr`
