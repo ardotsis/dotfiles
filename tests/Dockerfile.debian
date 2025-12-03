@@ -15,7 +15,7 @@ RUN apt-get update && \
     # exa \
     # fd-find \
     # fzf \
-    # git \
+    git \
     # htop \
     # httpie \
     # jq \
@@ -23,7 +23,7 @@ RUN apt-get update && \
     # peco \
     # ripgrep \
     # tree \
-    # wget \
+    wget \
     zsh
 
 COPY . /var/tmp/.dotfiles

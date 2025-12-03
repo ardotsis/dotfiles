@@ -9,15 +9,15 @@ declare -ar _PARAM_3=("TEST" "--test" "-t" "flag" "false")
 
 _i=0
 while :; do
-	_var="_PARAM_${_i}"
-	[[ -z "${!_var+x}" ]] && break
+	_param_var="_PARAM_${_i}"
+	[[ -z "${!_param_var+x}" ]] && break
 
-	declare -n _a="$_var"
-	_global_var="${_a[0]}"
-	_long_name="${_a[1]}"
-	_short_name="${_a[2]}"
-	_type="${_a[3]}"
-	_default_value="${_a[4]}"
+	declare -n _a_param="$_param_var"
+	_global_var="${_a_param[0]}"
+	_long_name="${_a_param[1]}"
+	_short_name="${_a_param[2]}"
+	_type="${_a_param[3]}"
+	_default_value="${_a_param[4]}"
 
 	_arg_index=0
 	while ((_arg_index < ${#_ARGS[@]})); do
@@ -76,6 +76,7 @@ else
 	fi
 fi
 
+readonly DOTFILES_UPSTREAM="main"
 readonly HOST_PREFIX="${HOST^^}_"
 
 declare -A SYSTEM_PATH
@@ -164,6 +165,22 @@ get_script_path() {
 	printf "%s" "$(readlink -f "$0")"
 }
 
+get_script_run_cmd() {
+	local script_path="$1"
+	local initialized="$2"
+	local -n arr_ref="$3"
+
+	arr_ref=(
+		"$script_path"
+		"--host"
+		"$HOST"
+		"--username"
+		"$INSTALL_USER"
+	)
+	[[ "$initialized" == "true" ]] && arr_ref+=("--initialized") || true
+	[[ "$TEST" == "true" ]] && arr_ref+=("--test") || true
+}
+
 is_cmd_exist() {
 	local cmd="$1"
 
@@ -184,6 +201,7 @@ get_random_str() {
 install_package() {
 	local pkg="$1"
 
+	log_info "Installing $pkg..."
 	if [[ "$OS" == "debian" ]]; then
 		$SUDO apt-get install -y --no-install-recommends "$pkg"
 	fi
@@ -212,8 +230,29 @@ add_user() {
 }
 
 ##################################################
-#                   Installers                   #
+#                    Scripts                     #
 ##################################################
+clone_dotfiles_repo() {
+	if ! is_cmd_exist git; then
+		install_package "git"
+	fi
+
+	if [[ "$TEST" == "true" ]]; then
+		cp -r "${SYSTEM_PATH["dotfiles_dev_data"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
+		chown -R "$INSTALL_USER:$INSTALL_USER" "${SYSTEM_PATH["dotfiles_repo"]}"
+	else
+		git clone -b "$DOTFILES_UPSTREAM" "${URL["dotfiles_repo"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
+	fi
+}
+
+install_listed_packages() {
+	while read -r pkg; do
+		if ! is_cmd_exist "$pkg"; then
+			install_package "$pkg"
+		fi
+	done <"${DOTFILES_PATH["packages"]}"
+}
+
 convert_home_path() {
 	local original_path="$1"
 	local to="$2"
@@ -234,7 +273,7 @@ convert_home_path() {
 	printf "%s" "${original_path/#${!from}/${!to}}"
 }
 
-link() {
+do_link() {
 	local a_home_dir="${1-${SYSTEM_PATH["home"]}}"
 	local dir_type="${2:-}"
 	local prefix_base="${3:-}"
@@ -270,8 +309,7 @@ link() {
 			if [[ "$basename_" == "$HOST_PREFIX"* ]]; then
 				for c_i in "${!pre_common_items[@]}"; do
 					if [[ "${pre_common_items[$c_i]}" == "${basename_#"${HOST_PREFIX}"}" ]]; then
-						log_info "Detect host prefer item: '${pre_common_items[$c_i]}'"
-						unset "pre_common_items[$c_i]"
+						pre_common_items=("${pre_common_items[@]:0:$c_i}" "${pre_common_items[@]:$c_i+1}")
 						break
 					fi
 				done
@@ -300,7 +338,7 @@ link() {
 	for item_type in "union" "host" "common"; do
 		local -n items="${item_type}_items"
 		for item in "${items[@]}"; do
-			[[ -z "$item" ]] && continue # TODO: Remove ("") empty element from arr before for loop
+			[[ -z "$item" ]] && continue
 			local as_home_item="${a_home_dir}/${item}"
 			# shellcheck disable=SC2034
 			local as_common_item="${as_common_dir}/${item}"
@@ -315,23 +353,24 @@ link() {
 			local actual_item="${!as_var}"
 
 			log_vars "item_type" "item" "as_var" "actual_item"
-			# DIRECTORY
+
+			# Directory
 			if [[ -d "$actual_item" ]]; then
-				log_info "Create directory: '$as_home_item'"
 				if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
 					renamed_as_home_item="${a_home_dir}/${item#"${HOST_PREFIX}"}"
-					mkdir -p "$renamed_as_home_item"
-					link "$as_home_item" "$item_type" "$as_home_item"
+					log_info "Create directory: '$renamed_as_home_item'"
+					mkdir "$renamed_as_home_item"
+					do_link "$as_home_item" "$item_type" "$as_home_item"
 				else
-					mkdir -p "$as_home_item"
+					log_info "Create directory: '$as_home_item'"
+					mkdir "$as_home_item"
 					if [[ "$item_type" == "union" ]]; then
-						link "$as_home_item"
+						do_link "$as_home_item"
 					else
-						# Exclusive home directory
-						link "$as_home_item" "$item_type"
+						do_link "$as_home_item" "$item_type"
 					fi
 				fi
-			# FILE
+			# File
 			elif [[ -f "$actual_item" ]]; then
 				if [[ "$item_type" == "host" && -n "$prefix_base" ]]; then
 					log_debug "Rename home link"
@@ -347,49 +386,51 @@ link() {
 	done
 }
 
+##################################################
+#                   Installers                   #
+##################################################
 do_setup_vultr() {
-	# Clone dotfiles repository
-	if ! is_cmd_exist git; then
-		log_info "Installing Git..."
-		install_package "git"
-	fi
+	log_info "Start setup vultr"
+	clone_dotfiles_repo
+	do_link
+	install_listed_packages
 
-	if [[ "$TEST" == "true" ]]; then
-		cp -r "${SYSTEM_PATH["dotfiles_dev_data"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
-		chown -R "$INSTALL_USER:$INSTALL_USER" "${SYSTEM_PATH["dotfiles_repo"]}"
-	else
-		git clone -b main "${URL["dotfiles_repo"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
-	fi
-
-	log_info "Start linking..."
-	link
-
-	log_info "Start package installation..."
-	while read -r pkg; do
-		if ! is_cmd_exist "$pkg"; then
-			log_info "Installing $pkg..."
-			install_package "$pkg"
-		fi
-	done <"${DOTFILES_PATH["packages"]}"
-
-	# Configure sshd
+	# Disable and uninstall UFW
 	if is_cmd_exist ufw; then
-		log_info "Removing UFW..."
+		log_info "Uninstalling UFW..."
 		$SUDO ufw disable
 		remove_package "ufw"
 	fi
 
-	log_info "Configuring sshd..."
-	local template_dir="${DOTFILES_PATH["host"]}/.template"
+	local template_dir="${DOTFILES_PATH["common"]}/.template"
+
+	log_info "Resetting openssh config directory..."
 	local openssh_dir="/etc/ssh"
-	[[ -e "${openssh_dir}/sshd_config" ]] && $SUDO rm "${openssh_dir}/sshd_config"
-	$SUDO cp "${template_dir}/openssh-server/sshd_config" "${openssh_dir}/sshd_config"
-	local port_num="$((1024 + RANDOM % (65535 - 1024 + 1)))"
-	sudo sed -i "s/^Port [0-9]\+/Port $port_num/" "${openssh_dir}/sshd_config"
-	printf "SSH port: %s\n" "$port_num" >>"${SYSTEM_PATH["dotfiles_secret"]}"
+	local sshd_config="${openssh_dir}/sshd_config"
+	[[ -e "$openssh_dir" ]] && $SUDO rm -rf "$openssh_dir"
+	$SUDO install -d -m 0755 "$openssh_dir"
+	$SUDO install -m 0600 "${template_dir}/openssh-server/sshd_config" "$sshd_config"
+
+	# Generate port number
+	local ssh_port="$((1024 + RANDOM % (65535 - 1024 + 1)))"
+	sudo sed -i "s/^Port [0-9]\+/Port $ssh_port/" "$sshd_config"
+	printf "SSH port: %s\n" "$ssh_port" >>"${SYSTEM_PATH["dotfiles_secret"]}"
+
+	log_info "Resetting home ssh directory..."
 	local ssh_dir="${SYSTEM_PATH["home"]}/.ssh"
-	[[ ! -e "$ssh_dir" ]] && mkdir "$ssh_dir"
-	chmod 700 "$ssh_dir"
+	local authorized_keys="$ssh_dir/authorized_keys"
+	[[ -e "$ssh_dir" ]] && rm -rf "$ssh_dir"
+	install -d -m 0700 "$ssh_dir"
+	install -m 600 /dev/null "$authorized_keys"
+
+	log_info "Resetting iptables directory..."
+	local iptables_dir="/etc/iptables"
+	local rules_v4="${iptables_dir}/rules.v4"
+	local rules_v6="${iptables_dir}/rules.v6"
+	[[ -e "$iptables_dir" ]] && $SUDO rm -rf "$iptables_dir"
+	$SUDO install -d -m 0755 "$iptables_dir"
+	$SUDO install -m 644 "${template_dir}/iptables/rules.v4" "$rules_v4"
+	$SUDO install -m 644 "${template_dir}/iptables/rules.v6" "$rules_v6"
 
 	if [[ "$TEST" == "false" ]]; then
 		log_info "Restarting sshd..."
@@ -399,22 +440,6 @@ do_setup_vultr() {
 
 do_setup_arch() {
 	log_warn "dotfiles for arch - Not implemented yet.\nExiting..."
-}
-
-get_script_run_cmd() {
-	local script_path="$1"
-	local initialized="$2"
-	local -n arr_ref="$3"
-
-	arr_ref=(
-		"$script_path"
-		"--host"
-		"$HOST"
-		"--username"
-		"$INSTALL_USER"
-	)
-	[[ "$initialized" == "true" ]] && arr_ref+=("--initialized") || true
-	[[ "$TEST" == "true" ]] && arr_ref+=("--test") || true
 }
 
 main() {
@@ -439,7 +464,7 @@ main() {
 		log_info "Create secret file on ${SYSTEM_PATH["dotfiles_secret"]}"
 		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"${SYSTEM_PATH["dotfiles_secret"]}"
 		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"${SYSTEM_PATH["dotfiles_secret"]}"
-		chown "$INSTALL_USER" "${SYSTEM_PATH["dotfiles_secret"]}"
+		chown "$INSTALL_USER:$INSTALL_USER" "${SYSTEM_PATH["dotfiles_secret"]}"
 		chmod 600 "${SYSTEM_PATH["dotfiles_secret"]}"
 
 		local run_cmd
@@ -465,8 +490,11 @@ if [[ -z "${BASH_SOURCE[0]+x}" && "$INITIALIZED" == "false" ]]; then
 
 	get_script_run_cmd "${SYSTEM_PATH["dotfiles_tmp_installer"]}" "false" "run_cmd"
 	printf "Restarting...\n\n"
-	declare -p "run_cmd"
 	"${run_cmd[@]}"
 else
 	main
+	if [[ "$TEST" == "true" ]]; then
+		log_debug "Test mode is enabled. Keeping docker container running..."
+		tail -f /dev/null
+	fi
 fi
