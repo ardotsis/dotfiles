@@ -12,13 +12,13 @@ _simple / minimal / suckless / secure / free / reproducible / efficient / unique
 ### `ardotsis@vultr`
 
 ```sh
-curl -fsSL "dotfiles.menhera.art" | bash -s -- -h vultr
+curl -fsSL "dotfiles.ardotsis.com" | bash -s -- -h vultr
 ```
 
 ### `ardotsis@arch`
 
 ```sh
-curl -fsSL "dotfiles.menhera.art" | bash -s -- -h arch
+curl -fsSL "dotfiles.ardotsis.com" | bash -s -- -h arch
 ```
 
 ### `ardotsis@windows`
