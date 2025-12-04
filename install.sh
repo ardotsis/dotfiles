@@ -1,57 +1,78 @@
 #!/bin/bash
 set -e -u -o pipefail -C
 
+declare -ar _PARAM_0=("--host" "-h" "value" "")
+declare -ar _PARAM_1=("--username" "-u" "value" "ardotsis")
+declare -ar _PARAM_2=("--initialized" "-i" "flag" "false")
+declare -ar _PARAM_3=("--test" "-t" "flag" "false")
+
 declare -a _ARGS=("$@")
-declare -ar _PARAM_0=("HOST" "--host" "-h" "value" "")
-declare -ar _PARAM_1=("INSTALL_USER" "--username" "-u" "value" "ardotsis")
-declare -ar _PARAM_2=("INITIALIZED" "--initialized" "-i" "flag" "false")
-declare -ar _PARAM_3=("TEST" "--test" "-t" "flag" "false")
+declare -A _PARAMS=()
+_IS_ARGS_PARSED="false"
 
-_i=0
-while :; do
-	_param_var="_PARAM_${_i}"
-	[[ -z "${!_param_var+x}" ]] && break
+_parse_args() {
+	show_missing_param_err() {
+		printf "Please provide a value for '%s' (%s) parameter.\n" "$1" "$2"
+		exit 1
+	}
 
-	declare -n _a_param="$_param_var"
-	_global_var="${_a_param[0]}"
-	_long_name="${_a_param[1]}"
-	_short_name="${_a_param[2]}"
-	_type="${_a_param[3]}"
-	_default_value="${_a_param[4]}"
+	local i=0
+	while :; do
+		local param_var="_PARAM_${i}"
+		[[ -z "${!param_var+x}" ]] && break
 
-	_arg_index=0
-	while ((_arg_index < ${#_ARGS[@]})); do
-		_some_arg="${_ARGS[$_arg_index]}"
-		if [[ "$_some_arg" == "$_long_name" || "$_some_arg" == "$_short_name" ]]; then
-			if [[ "$_type" == "value" ]]; then
-				_value_index=$(("$_arg_index" + 1))
-				if ((_value_index < ${#_ARGS[@]})); then
-					_value="${_ARGS[$_value_index]}"
-				else
-					printf "Please provide a value for '%s' (%s) parameter.\n" "$_long_name" "$_short_name"
-					exit 1
+		declare -n a_param="$param_var"
+		local long_name="${a_param[0]}"
+		local short_name="${a_param[1]}"
+		local type="${a_param[2]}"
+		local default_value="${a_param[3]}"
+		local key="${long_name#--}"
+
+		arg_index=0
+		while ((arg_index < ${#_ARGS[@]})); do
+			local some_arg="${_ARGS[$arg_index]}"
+			if [[ "$some_arg" == "$long_name" || "$some_arg" == "$short_name" ]]; then
+				if [[ "$type" == "value" ]]; then
+					local value_index=$((arg_index + 1))
+					if ((value_index < ${#_ARGS[@]})); then
+						value="${_ARGS[$value_index]}"
+					else
+						show_missing_param_err "$short_name" "$long_name"
+					fi
+					_PARAMS["$key"]="$value"
+					_ARGS=("${_ARGS[@]:0:$arg_index}" "${_ARGS[@]:$arg_index+2}")
+				elif [[ "$type" == "flag" ]]; then
+					_PARAMS["$key"]="true"
 				fi
-				readonly "$_global_var"="$_value"
-				_ARGS=("${_ARGS[@]:0:$_arg_index}" "${_ARGS[@]:$_arg_index+2}")
-			elif [[ "$_type" == "flag" ]]; then
-				readonly "$_global_var"="true"
+				break
 			fi
-			break
+			arg_index=$((arg_index + 1))
+		done
+
+		if [[ -z "${!_PARAMS["$key"]+x}" ]]; then
+			if [[ -n "$default_value" ]]; then
+				_PARAMS["${long_name#--}"]="$default_value"
+			else
+				show_missing_param_err "$short_name" "$long_name"
+			fi
 		fi
-		_arg_index=$(("$_arg_index" + 1))
+
+		i=$((i + 1))
 	done
 
-	if [[ -z "${!_global_var+x}" ]]; then
-		if [[ -n "$_default_value" ]]; then
-			readonly "$_global_var"="$_default_value"
-		else
-			printf "Please provide a value for '%s' (%s) parameter.\n" "$_long_name" "$_short_name"
-			exit 1
-		fi
+	_IS_ARGS_PARSED="true"
+}
+
+_parse_args
+
+get_arg() {
+	local name="$1"
+
+	if [[ "$_IS_ARGS_PARSED" == "false" ]]; then
+		_parse_args
 	fi
 
-	_i=$(("$_i" + 1))
-done
+}
 
 # shellcheck disable=SC2153
 case "$HOST" in

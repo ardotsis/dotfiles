@@ -26,7 +26,5 @@ RUN apt-get update && \
     wget \
     zsh
 
-COPY . /var/tmp/.dotfiles
-
 # Simulate run via curl
 CMD ["bash", "-c", "cat /var/tmp/.dotfiles/install.sh | bash -s -- $INSTALL_ARGS"]

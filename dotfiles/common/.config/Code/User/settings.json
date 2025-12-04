@@ -54,10 +54,10 @@
   "github.copilot.editor.enableCodeActions": false,
   "github.copilot.enable": {
     "*": false,
-    "markdown": false,
     "plaintext": false,
+    "markdown": false,
     "scminput": false,
-    "shellscript": true
+    "shellscript": false
   },
   "inlineChat.lineNaturalLanguageHint": false,
   "telemetry.feedback.enabled": false,
