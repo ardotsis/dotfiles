@@ -32,6 +32,7 @@ if "%REBUILD_FLAG%"=="--rebuild" (
   docker buildx history rm --all
 )
 
+echo.
 echo ========== Begin Docker container session ==========
 docker run ^
 --rm ^
