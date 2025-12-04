@@ -5,10 +5,9 @@ declare -ar _PARAM_0=("--host" "-h" "value" "")
 declare -ar _PARAM_1=("--username" "-u" "value" "ardotsis")
 declare -ar _PARAM_2=("--initialized" "-i" "flag" "false")
 declare -ar _PARAM_3=("--test" "-t" "flag" "false")
-
-declare -a _ARGS=("$@")
 declare -A _PARAMS=()
 _IS_ARGS_PARSED="false"
+declare -a _ARGS=("$@")
 
 _parse_args() {
 	show_missing_param_err() {
@@ -49,31 +48,31 @@ _parse_args() {
 			arg_index=$((arg_index + 1))
 		done
 
-		if [[ -z "${!_PARAMS["$key"]+x}" ]]; then
+		if [[ -z "${_PARAMS["$key"]+x}" ]]; then
 			if [[ -n "$default_value" ]]; then
-				_PARAMS["${long_name#--}"]="$default_value"
+				_PARAMS["$key"]="$default_value"
 			else
 				show_missing_param_err "$short_name" "$long_name"
 			fi
 		fi
 
 		i=$((i + 1))
-		declare -p _PARAMS
 	done
-
 	_IS_ARGS_PARSED="true"
 }
 
-_parse_args
+echo "$@"
+# get_arg() {
+# 	local name="$1"
 
-get_arg() {
-	local name="$1"
+# 	if [[ "$_IS_ARGS_PARSED" == "false" ]]; then
+# 		_parse_args
+# 	fi
 
-	if [[ "$_IS_ARGS_PARSED" == "false" ]]; then
-		_parse_args
-	fi
+# 	declare -p _PARAMS
+# }
 
-}
+# get_arg
 
 # shellcheck disable=SC2153
 case "$HOST" in

@@ -1,9 +1,5 @@
 FROM debian:bookworm
 
-# To expand optional arguments for install.sh in CMD.
-ARG INSTALL_ARGS=""
-ENV INSTALL_ARGS=${INSTALL_ARGS}
-
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y \
@@ -11,20 +7,9 @@ RUN apt-get update && \
     ca-certificates \
     sudo \
     curl \
-    # bat \
-    # exa \
-    # fd-find \
-    # fzf \
     git \
-    # htop \
-    # httpie \
-    # jq \
-    # neovim \
-    # peco \
-    # ripgrep \
-    # tree \
     wget \
     zsh
 
-# Simulate run via curl
-CMD ["bash", "-c", "cat /var/tmp/.dotfiles/install.sh | bash -s -- $INSTALL_ARGS"]
+# Simulate run script via pipeline (curl)
+CMD ["bash", "-c", "cat /var/tmp/.dotfiles/install.sh | bash -s -- $INSTALL_SCRIPT_PARAMS"]
