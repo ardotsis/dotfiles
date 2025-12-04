@@ -31,5 +31,6 @@ if "%REBUILD_FLAG%"=="--rebuild" (
     echo Cleaning up build history...
     docker buildx history rm --all
 )
+
 echo.
 docker run --rm --mount type=bind,source="%REPO_DIR%",target="%DOTFILES_DEV_DATA%",readonly --name "%CONTAINER_NAME%" "%IMAGE%"

@@ -58,6 +58,7 @@ _parse_args() {
 		fi
 
 		i=$((i + 1))
+		declare -p _PARAMS
 	done
 
 	_IS_ARGS_PARSED="true"
