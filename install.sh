@@ -65,34 +65,28 @@ _parse_args() {
 
 get_arg() {
 	local name="$1"
-
 	if [[ "$_IS_ARGS_PARSED" == "false" ]]; then
 		_parse_args
 	fi
-
 	printf %s "${_PARAMS[$name]}"
 }
 
-# Ignore: shellcheck disable=SC2155
+# shellcheck disable=SC2155
 readonly HOST=$(get_arg "host")
+# shellcheck disable=SC2155
 readonly INSTALL_USER=$(get_arg "username")
+# shellcheck disable=SC2155
 readonly IS_TEST=$(get_arg "test")
+# shellcheck disable=SC2155
 readonly IS_INITIALIZED=$(get_arg "initialized")
 
-case "$HOST" in
-vultr)
-	readonly OS="debian"
-	;;
-arch)
-	readonly OS="arch"
-	;;
-*)
-	printf "Unknown host: '%s'" "$HOST"
-	exit 1
-	;;
-esac
+declare -Ar OS_MAP=(
+	["vultr"]="debian"
+	["arch"]="arch"
+	["mc"]="ubuntu"
+)
 
-# Set sudo mode
+readonly OS=${OS_MAP["$HOST"]}
 if [[ "$(id -u)" == "0" ]]; then
 	readonly SUDO=""
 else
@@ -263,8 +257,9 @@ clone_dotfiles_repo() {
 	fi
 
 	if [[ "$IS_TEST" == "true" ]]; then
-		cp -r "${SYSTEM_PATH["dotfiles_dev_data"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
-		chown -R "$INSTALL_USER:$INSTALL_USER" "${SYSTEM_PATH["dotfiles_repo"]}"
+		ln -s "${SYSTEM_PATH["dotfiles_dev_data"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
+		# cp -r "${SYSTEM_PATH["dotfiles_dev_data"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
+		# chown -R "$INSTALL_USER:$INSTALL_USER" "${SYSTEM_PATH["dotfiles_repo"]}"
 	else
 		git clone -b "$DOTFILES_UPSTREAM" "${URL["dotfiles_repo"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
 	fi

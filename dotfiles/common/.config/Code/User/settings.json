@@ -85,6 +85,6 @@
   },
   "vscode-neovim.neovimExecutablePaths.win32": "C:\\Program Files\\Neovim\\bin\\nvim.exe",
   "window.menuBarVisibility": "compact",
-  "workbench.colorTheme": "Rouge 2",
+  "workbench.colorTheme": "Best Themes - Gruvbox Material Dark",
   "workbench.iconTheme": "material-icon-theme"
 }
