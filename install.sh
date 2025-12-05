@@ -26,8 +26,8 @@ _parse_args() {
 		local short_name="${a_param[1]}"
 		local type="${a_param[2]}"
 		local default_value="${a_param[3]}"
-		local key="${long_name#--}" # Remove "--"
-		key="${key//-/_}"           # "-" to "_"
+		local key="${long_name#--}" # 1. "--my-name" -> "my-name"
+		key="${key//-/_}"           # 2. "my-name" -> "my_name"
 
 		arg_index=0
 		while ((arg_index < ${#_ARGS[@]})); do

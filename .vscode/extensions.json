@@ -9,6 +9,7 @@
     "formulahendry.code-runner",
     "mkhl.shfmt",
     "mads-hartmann.bash-ide-vscode",
-    "xyz.local-history"
+    "xyz.local-history",
+    "redhat.vscode-yaml"
   ]
 }
