@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e -u -o pipefail -C
 
+declare -a _ARGS=("$@")
+declare -A _PARAMS=()
+_IS_ARGS_PARSED="false"
+
 declare -ar _PARAM_0=("--host" "-h" "value" "")
 declare -ar _PARAM_1=("--username" "-u" "value" "ardotsis")
 declare -ar _PARAM_2=("--initialized" "-i" "flag" "false")
 declare -ar _PARAM_3=("--test" "-t" "flag" "false")
-declare -ar _PARAM_4=("--easter-egg" "-ee" "value" "ar.sis is cute!")
-declare -A _PARAMS=()
-_IS_ARGS_PARSED="false"
-declare -a _ARGS=("$@")
 
 _parse_args() {
 	show_missing_param_err() {
@@ -67,6 +67,7 @@ get_arg() {
 	local name="$1"
 
 	if [[ "$_IS_ARGS_PARSED" == "false" ]]; then
+		echo "parse arg"
 		_parse_args
 	fi
 
@@ -74,6 +75,8 @@ get_arg() {
 }
 
 get_arg "host"
+
+exit
 
 # shellcheck disable=SC2153
 case "$HOST" in
