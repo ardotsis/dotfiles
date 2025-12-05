@@ -71,7 +71,7 @@ get_arg() {
 		_parse_args
 	fi
 
-	declare -p _PARAMS
+	echo _PARAMS["$name"]
 }
 
 get_arg "host"
