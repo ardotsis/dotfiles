@@ -258,8 +258,6 @@ clone_dotfiles_repo() {
 
 	if [[ "$IS_TEST" == "true" ]]; then
 		ln -s "${SYSTEM_PATH["dotfiles_dev_data"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
-		# cp -r "${SYSTEM_PATH["dotfiles_dev_data"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
-		# chown -R "$INSTALL_USER:$INSTALL_USER" "${SYSTEM_PATH["dotfiles_repo"]}"
 	else
 		git clone -b "$DOTFILES_UPSTREAM" "${URL["dotfiles_repo"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
 	fi
