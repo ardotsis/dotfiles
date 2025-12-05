@@ -1,23 +1,23 @@
 {
   "[css]": {
-    "editor.defaultFormatter": "stylelint.vscode-stylelint"
+    "editor.defaultFormatter": "stylelint.vscode-stylelint",
+    "files.autoSave": "afterDelay"
   },
   "[html]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "files.autoSave": "afterDelay"
   },
   "[json]": {
     "editor.codeActionsOnSave": {
       "source.sort.json": "always"
     },
-    "editor.defaultFormatter": "richie5um2.vscode-sort-json",
-    "files.autoSave": "onFocusChange"
+    "editor.defaultFormatter": "richie5um2.vscode-sort-json"
   },
   "[jsonc]": {
     "editor.codeActionsOnSave": {
       "source.sort.json": "always"
     },
-    "editor.defaultFormatter": "richie5um2.vscode-sort-json",
-    "files.autoSave": "onFocusChange"
+    "editor.defaultFormatter": "richie5um2.vscode-sort-json"
   },
   "[markdown]": {
     "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
@@ -51,7 +51,7 @@
   "extensions.experimental.affinity": {
     "asvetliakov.vscode-neovim": 1
   },
-  "files.autoSave": "afterDelay",
+  "files.autoSave": "onFocusChange",
   "files.autoSaveDelay": 50,
   "files.eol": "\n",
   // github.copilot.editor.enableCodeActions: https://github.com/microsoft/vscode-copilot-release/issues/735#issuecomment-1886589021

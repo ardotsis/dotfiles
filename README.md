@@ -1,6 +1,8 @@
 # ar.sis's dotfiles
 
-_simple / minimal / suckless / secure / free / reproducible / efficient / unique / kawaii / menhera_
+the everything of entire system configurations for **ar.sis**.
+
+_simple / minimal / pixel perfect / suckless / secure / free / reproducible / efficient / unique / kawaii / menhera_
 
 > [!WARNING]
 > This project is still work in progress. So please do not expect to work. Thank you 🩷
