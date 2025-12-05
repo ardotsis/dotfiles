@@ -67,18 +67,18 @@ get_arg() {
 	local name="$1"
 
 	if [[ "$_IS_ARGS_PARSED" == "false" ]]; then
-		echo "parse arg"
 		_parse_args
 	fi
 
-	echo _PARAMS["$name"]
+	printf %s "${_PARAMS[$name]}"
 }
 
-get_arg "host"
+# Ignore: shellcheck disable=SC2155
+readonly HOST=$(get_arg "host")
+readonly INSTALL_USER=$(get_arg "username")
+readonly IS_TEST=$(get_arg "test")
+readonly IS_INITIALIZED=$(get_arg "initialized")
 
-exit
-
-# shellcheck disable=SC2153
 case "$HOST" in
 vultr)
 	readonly OS="debian"
@@ -203,7 +203,7 @@ get_script_run_cmd() {
 		"$INSTALL_USER"
 	)
 	[[ "$initialized" == "true" ]] && arr_ref+=("--initialized") || true
-	[[ "$TEST" == "true" ]] && arr_ref+=("--test") || true
+	[[ "$IS_TEST" == "true" ]] && arr_ref+=("--test") || true
 }
 
 is_cmd_exist() {
@@ -262,7 +262,7 @@ clone_dotfiles_repo() {
 		install_package "git"
 	fi
 
-	if [[ "$TEST" == "true" ]]; then
+	if [[ "$IS_TEST" == "true" ]]; then
 		cp -r "${SYSTEM_PATH["dotfiles_dev_data"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
 		chown -R "$INSTALL_USER:$INSTALL_USER" "${SYSTEM_PATH["dotfiles_repo"]}"
 	else
@@ -457,7 +457,7 @@ do_setup_vultr() {
 	$SUDO install -m 644 "${template_dir}/iptables/rules.v4" "$rules_v4"
 	$SUDO install -m 644 "${template_dir}/iptables/rules.v6" "$rules_v6"
 
-	if [[ "$TEST" == "false" ]]; then
+	if [[ "$IS_TEST" == "false" ]]; then
 		log_info "Restarting sshd..."
 		$SUDO systemctl restart sshd
 	fi
@@ -470,8 +470,7 @@ do_setup_arch() {
 main() {
 	log_info "Start installation script as ${COLOR["yellow"]}$(whoami)${COLOR["reset"]}..."
 
-	# shellcheck disable=SC2153
-	if [[ "$INITIALIZED" == "true" ]]; then
+	if [[ "$IS_INITIALIZED" == "true" ]]; then
 		log_debug "Change current directory to ${SYSTEM_PATH["home"]}"
 		cd "${SYSTEM_PATH["home"]}"
 		"do_setup_${HOST}"
@@ -501,9 +500,9 @@ main() {
 	fi
 }
 
-if [[ -z "${BASH_SOURCE[0]+x}" && "$INITIALIZED" == "false" ]]; then
+if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
 	# Download script
-	if [[ "$TEST" == "true" ]]; then
+	if [[ "$IS_TEST" == "true" ]]; then
 		dev_install_file="${SYSTEM_PATH["dotfiles_dev_data"]}/install.sh"
 		log_info "Copying script from ${COLOR["yellow"]}$dev_install_file${COLOR["reset"]}..."
 		cp "$dev_install_file" "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
@@ -518,7 +517,7 @@ if [[ -z "${BASH_SOURCE[0]+x}" && "$INITIALIZED" == "false" ]]; then
 	"${run_cmd[@]}"
 else
 	main
-	if [[ "$TEST" == "true" ]]; then
+	if [[ "$IS_TEST" == "true" ]]; then
 		log_debug "Test mode is enabled. Keeping docker container running..."
 		tail -f /dev/null
 	fi
