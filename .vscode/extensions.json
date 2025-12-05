@@ -20,8 +20,11 @@
     "ftsamoyed.theme-pink-cat-boo",
     "github.copilot",
     "github.copilot-chat",
+    "harryhopkinson.vim-theme",
+    "jonathanharty.gruvbox-material-icon-theme",
     "josef.rouge-theme",
     "juanmnl.vscode-theme-mr-pink",
+    "lakshits11.best-themes-redefined",
     "mads-hartmann.bash-ide-vscode",
     "mechatroner.rainbow-csv",
     "mgmcdermott.vscode-language-babel",
@@ -48,8 +51,11 @@
     "richie5um2.vscode-sort-json",
     "ritwickdey.liveserver",
     "rust-lang.rust-analyzer",
+    "sainnhe.everforest",
+    "sainnhe.gruvbox-material",
     "streetsidesoftware.code-spell-checker",
     "stylelint.vscode-stylelint",
+    "t3dotgg.vsc-material-theme-but-i-wont-sue-you",
     "tamasfe.even-better-toml",
     "thqby.vscode-autohotkey2-lsp",
     "timonwong.shellcheck",
@@ -58,6 +64,5 @@
     "xyz.local-history",
     "yinfei.luahelper",
     "yzhang.markdown-all-in-one",
-    "harryhopkinson.vim-theme"
   ]
 }
