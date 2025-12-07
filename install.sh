@@ -124,8 +124,8 @@ IPTABLES["rules_v6"]="${IPTABLES["etc"]}/rules.v6"
 declare -r IPTABLES
 
 declare -A OPENSSH_SERVER
-IPTABLES["etc"]="/etc/ssh"
-IPTABLES["sshd_config"]="${OPENSSH_SERVER["etc"]}/sshd_config"
+OPENSSH_SERVER["etc"]="/etc/ssh"
+OPENSSH_SERVER["sshd_config"]="${OPENSSH_SERVER["etc"]}/sshd_config"
 declare -r OPENSSH_SERVER
 
 declare -Ar PERMISSION=(
@@ -480,7 +480,7 @@ do_setup_vultr() {
 	log_info "Resetting openssh config directory..."
 	local sshd_config="${SYS_PATH["openssh-server"]}/sshd_config"
 	local sshd_config_tmpl="${template_dir}/openssh-server/sshd_config"
-	set_template "${SYS_PATH["openssh-server"]}"
+	set_template "${OPENSSH_SERVER["etc"]}"
 	set_template "$sshd_config" "$sshd_config_tmpl"
 
 	# Generate port number

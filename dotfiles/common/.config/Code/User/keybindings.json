@@ -31,5 +31,9 @@
     "command": "-vscode-neovim.send",
     "key": "ctrl+k",
     "when": "editorTextFocus && neovim.ctrlKeysInsert.k && neovim.init && neovim.mode == 'insert' && editorLangId not in 'neovim.editorLangIdExclusions'"
+  },
+  {
+    "command": "-workbench.action.focusSideBar",
+    "key": "ctrl+0"
   }
 ]
