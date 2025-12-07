@@ -28,11 +28,9 @@ curl -fsSL dotfiles.ardotsis.com | bash -s -- -h arch
 ### Test on Docker (Windows)
 
 ```powershell
+.\scripts\test_debian.bat "--host vultr --username kana --local --docker" --rebuild
 .\scripts\test_debian.bat "--host vultr --username kana --local --docker"
 ```
-
-> [!NOTE]
-> Original URL: ```https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh```
 
 ## Shortcut Keys
 
