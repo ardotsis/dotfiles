@@ -1,11 +1,11 @@
 [
   {
-    "command": "github.copilot.completions.toggle",
-    "key": "f1"
-  },
-  {
     "command": "-workbench.action.terminal.toggleTerminal",
     "key": "ctrl+`"
+  },
+  {
+    "command": "github.copilot.completions.toggle",
+    "key": "f1"
   },
   {
     "command": "workbench.action.focusActiveEditorGroup",
@@ -21,4 +21,15 @@
     "command": "-workbench.action.showCommands",
     "key": "f1"
   },
+  // For VSCode's Fold All (Ctrl-K Ctrl-0) / UnFold All (Ctrl-K Ctrl-J)
+  {
+    "command": "-vscode-neovim.send",
+    "key": "ctrl+k",
+    "when": "editorTextFocus && neovim.ctrlKeysNormal.k && neovim.init && neovim.mode != 'insert' && editorLangId not in 'neovim.editorLangIdExclusions'"
+  },
+  {
+    "command": "-vscode-neovim.send",
+    "key": "ctrl+k",
+    "when": "editorTextFocus && neovim.ctrlKeysInsert.k && neovim.init && neovim.mode == 'insert' && editorLangId not in 'neovim.editorLangIdExclusions'"
+  }
 ]

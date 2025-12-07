@@ -7,6 +7,10 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "files.autoSave": "afterDelay"
   },
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features",
+    "files.autoSave": "afterDelay"
+  },
   "[json]": {
     "editor.codeActionsOnSave": {
       "source.sort.json": "always"
@@ -41,18 +45,22 @@
     "kawaii",
     "suckless"
   ],
+  "editor.fontFamily": "'Hack Nerd Font', Consolas, 'Courier New', monospace",
+  "editor.fontSize": 13,
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
   "editor.formatOnType": true,
   // editor.lightbulb.enabled: https://github.com/microsoft/vscode-copilot-release/issues/735#issuecomment-1886589021
   "editor.lightbulb.enabled": "off",
+  "editor.minimap.enabled": false,
+  "editor.minimap.size": "fit",
   "explorer.confirmDelete": false,
   "explorer.confirmDragAndDrop": false,
   "extensions.experimental.affinity": {
     "asvetliakov.vscode-neovim": 1
   },
   "files.autoSave": "onFocusChange",
-  "files.autoSaveDelay": 50,
+  "files.autoSaveDelay": 100,
   "files.eol": "\n",
   // github.copilot.editor.enableCodeActions: https://github.com/microsoft/vscode-copilot-release/issues/735#issuecomment-1886589021
   "github.copilot.editor.enableCodeActions": false,
@@ -84,7 +92,11 @@
     }
   },
   "vscode-neovim.neovimExecutablePaths.win32": "C:\\Program Files\\Neovim\\bin\\nvim.exe",
+  "vscode-neovim.neovimInitVimPaths.win32": "C:\\Users\\owner\\AppData\\Local\\nvim\\init_vscode.lua",
+  "window.commandCenter": false,
   "window.menuBarVisibility": "compact",
-  "workbench.colorTheme": "Best Themes - Gruvbox Material Dark",
-  "workbench.iconTheme": "material-icon-theme"
+  "workbench.colorTheme": "Gruvbox in Black Bordered",
+  "workbench.iconTheme": "material-icon-theme",
+  "workbench.layoutControl.enabled": false,
+  "workbench.statusBar.visible": false
 }

@@ -12,7 +12,7 @@ function Test-Administrator {
 
 function Set-VSCodeSymlink([string] $SourceDir) {
     $repoConfigDir = Join-Path -Path $SourceDir -ChildPath "\dotfiles\common\.config\Code\User"
-    $winConfigDir = "$Env:APPDATA\Code\User"
+    $winConfigDir = "${Env:APPDATA}\Code\User"
 
     $items = @(
         "settings.json",
@@ -33,6 +33,16 @@ function Set-VSCodeSymlink([string] $SourceDir) {
     }
 }
 
+function Set-NeoVimSymlink([string] $SourceDir) {
+    $repoConfigDir = Join-Path -Path $SourceDir -ChildPath "\dotfiles\common\.config\nvim"
+    $winConfigDir = "${Env:LOCALAPPDATA}\nvim"
+
+    if (Test-Path -Path $winConfigDir) {
+        Remove-Item -Path $winConfigDir -Recurse -Force
+    }
+    New-Item -ItemType SymbolicLink -Path $winConfigDir -Target $repoConfigDir | Out-Null
+}
+
 function main() {
     if (-not (Test-Administrator)) {
         Write-Output "Not running as Administrator. Restarting..."
@@ -42,6 +52,7 @@ function main() {
     }
 
     Set-VSCodeSymlink -SourceDir $DotfilesRepoDir
+    Set-NeoVimSymlink -SourceDir $DotfilesRepoDir
 }
 
 main

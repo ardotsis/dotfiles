@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e -u -o pipefail -C
 
-declare -a _ARGS=("$@")
 declare -A _PARAMS=()
-_IS_ARGS_PARSED="false"
-
+declare -a _ARGS=("$@")
 declare -ar _PARAM_0=("--host" "-h" "value" "")
 declare -ar _PARAM_1=("--username" "-u" "value" "ardotsis")
 declare -ar _PARAM_2=("--initialized" "-i" "flag" "false")
 declare -ar _PARAM_3=("--test" "-t" "flag" "false")
+
+_IS_ARGS_PARSED="false"
 
 _parse_args() {
 	show_missing_param_err() {
@@ -29,7 +29,7 @@ _parse_args() {
 		local key="${long_name#--}" # 1. "--my-name" -> "my-name"
 		key="${key//-/_}"           # 2. "my-name" -> "my_name"
 
-		arg_index=0
+		local arg_index=0
 		while ((arg_index < ${#_ARGS[@]})); do
 			local some_arg="${_ARGS[$arg_index]}"
 			if [[ "$some_arg" == "$long_name" || "$some_arg" == "$short_name" ]]; then
@@ -57,10 +57,10 @@ _parse_args() {
 				show_missing_param_err "$long_name" "$short_name"
 			fi
 		fi
-
 		i=$((i + 1))
 	done
-	_IS_ARGS_PARSED="true"
+
+	readonly _IS_ARGS_PARSED="true"
 }
 
 get_arg() {
@@ -80,13 +80,14 @@ readonly IS_TEST=$(get_arg "test")
 # shellcheck disable=SC2155
 readonly IS_INITIALIZED=$(get_arg "initialized")
 
-declare -Ar OS_MAP=(
+declare -Ar HOST_OS=(
 	["vultr"]="debian"
 	["arch"]="arch"
 	["mc"]="ubuntu"
 )
 
-readonly OS=${OS_MAP["$HOST"]}
+readonly OS="${HOST_OS["$HOST"]}"
+
 if [[ "$(id -u)" == "0" ]]; then
 	readonly SUDO=""
 else
@@ -96,29 +97,50 @@ else
 fi
 
 readonly DOTFILES_UPSTREAM="main"
+readonly DOTFILES_DIR_NAME=".dotfiles"
 readonly HOST_PREFIX="${HOST^^}_"
 
-declare -A SYSTEM_PATH
-SYSTEM_PATH["home"]="/home/$INSTALL_USER"
-SYSTEM_PATH["tmp"]="/var/tmp"
-SYSTEM_PATH["dotfiles_repo"]="${SYSTEM_PATH["home"]}/.dotfiles"
-SYSTEM_PATH["dotfiles_dev_data"]="${SYSTEM_PATH["tmp"]}/.dotfiles"
-SYSTEM_PATH["dotfiles_secret"]="${SYSTEM_PATH["home"]}/dotfiles_secret"
-SYSTEM_PATH["dotfiles_tmp_installer"]="${SYSTEM_PATH["tmp"]}/install_dotfiles.sh"
-declare -r SYSTEM_PATH
+declare -A SYS_PATH
+SYS_PATH["home"]="/home/$INSTALL_USER"
+SYS_PATH["ssh"]="${SYS_PATH["home"]}/.ssh"
+SYS_PATH["dotfiles_repo"]="${SYS_PATH["home"]}/$DOTFILES_DIR_NAME"
+SYS_PATH["dotfiles_secret"]="${SYS_PATH["home"]}/dotfiles_secret"
+SYS_PATH["dotfiles_dev_data"]="/var/tmp/$DOTFILES_DIR_NAME"
+SYS_PATH["dotfiles_tmp_installer"]="/var/tmp/install_dotfiles.sh"
+declare -r SYS_PATH
 
 declare -A DOTFILES_PATH
-DOTFILES_PATH["root"]="${SYSTEM_PATH["home"]}/.dotfiles"
+DOTFILES_PATH["root"]="${SYS_PATH["home"]}/$DOTFILES_DIR_NAME"
 DOTFILES_PATH["src"]="${DOTFILES_PATH["root"]}/dotfiles"
 DOTFILES_PATH["common"]="${DOTFILES_PATH["src"]}/common"
 DOTFILES_PATH["host"]="${DOTFILES_PATH["src"]}/hosts/$HOST"
 DOTFILES_PATH["packages"]="${DOTFILES_PATH["src"]}/packages.txt"
 declare -r DOTFILES_PATH
 
-declare -A URL
-URL["dotfiles_repo"]="https://github.com/ardotsis/dotfiles.git"
-URL["dotfiles_installer"]="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
-declare -r URL
+declare -A IPTABLES
+IPTABLES["etc"]="/etc/iptables"
+IPTABLES["rules_v4"]="${IPTABLES["etc"]}/rules.v4"
+IPTABLES["rules_v6"]="${IPTABLES["etc"]}/rules.v6"
+declare -r IPTABLES
+
+declare -A OPENSSH_SERVER
+IPTABLES["etc"]="/etc/ssh"
+IPTABLES["sshd_config"]="${OPENSSH_SERVER["etc"]}/sshd_config"
+declare -r OPENSSH_SERVER
+
+declare -Ar PERMISSION=(
+	["${SYS_PATH["openssh-server"]}"]="d root root 0755"
+	["${SYS_PATH["openssh-server"]}/sshd_config"]="f root root 0600"
+	["${SYS_PATH["user_ssh"]}"]="d $INSTALL_USER $INSTALL_USER 0700"
+	["${SYS_PATH["user_ssh"]}/authorized_keys"]="d $INSTALL_USER $INSTALL_USER 0600"
+	["${SYS_PATH["iptables"]}/rules.v4"]="f root root 0600"
+	["${SYS_PATH["iptables"]}/rules.v6"]="f root root 0600"
+)
+
+declare -Ar URL=(
+	["dotfiles_repo"]="https://github.com/ardotsis/dotfiles.git"
+	["dotfiles_installer"]="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
+)
 
 declare -Ar COLOR=(
 	["reset"]="\033[0m"
@@ -248,6 +270,36 @@ add_user() {
 	fi
 }
 
+set_template() {
+	local item_path="$1"
+	local src_file_path="${2:-}"
+
+	local perm=("${PERMISSION["$item_path"]}")
+	local type="${perm[0]}"
+	local group="${perm[1]}"
+	local user="${perm[2]}"
+	local num="${perm[3]}"
+
+	if [[ -e "$item_path" ]]; then
+		log_info "Deleting $item_path..."
+		$SUDO rm -rf "$item_path"
+	fi
+
+	local install_cmd=("$SUDO" "install" "-m" "$num" "-o" "$user" "-g" "$group")
+	if [[ "$type" == "f" ]]; then
+		if [[ -n "$src_file_path" ]]; then
+			install_cmd+=("$src_file_path" "$item_path")
+		else
+			install_cmd+=("/dev/null" "$item_path")
+		fi
+	elif [[ "$type" == "d" ]]; then
+		install_cmd+=("$item_path" "-d")
+	fi
+
+	declare -p "install_cmd"
+	"${install_cmd[@]}"
+}
+
 ##################################################
 #                    Scripts                     #
 ##################################################
@@ -257,9 +309,9 @@ clone_dotfiles_repo() {
 	fi
 
 	if [[ "$IS_TEST" == "true" ]]; then
-		ln -s "${SYSTEM_PATH["dotfiles_dev_data"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
+		ln -s "${SYS_PATH["dotfiles_dev_data"]}" "${SYS_PATH["dotfiles_repo"]}"
 	else
-		git clone -b "$DOTFILES_UPSTREAM" "${URL["dotfiles_repo"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
+		git clone -b "$DOTFILES_UPSTREAM" "${URL["dotfiles_repo"]}" "${SYS_PATH["dotfiles_repo"]}"
 	fi
 }
 
@@ -276,7 +328,7 @@ convert_home_path() {
 	local to="$2"
 
 	# shellcheck disable=SC2034
-	local home="${SYSTEM_PATH["home"]}"
+	local home="${SYS_PATH["home"]}"
 	local common="${DOTFILES_PATH["common"]}"
 	local host="${DOTFILES_PATH["host"]}"
 
@@ -292,7 +344,7 @@ convert_home_path() {
 }
 
 do_link() {
-	local a_home_dir="${1-${SYSTEM_PATH["home"]}}"
+	local a_home_dir="${1-${SYS_PATH["home"]}}"
 	local dir_type="${2:-}"
 	local prefix_base="${3:-}"
 
@@ -356,7 +408,10 @@ do_link() {
 	for item_type in "union" "host" "common"; do
 		local -n items="${item_type}_items"
 		for item in "${items[@]}"; do
-			[[ -z "$item" ]] && continue
+			if [[ -z "$item" ]]; then
+				log_warn "Empty element in $item_type items"
+				continue
+			fi
 			local as_home_item="${a_home_dir}/${item}"
 			# shellcheck disable=SC2034
 			local as_common_item="${as_common_dir}/${item}"
@@ -423,36 +478,36 @@ do_setup_vultr() {
 	local template_dir="${DOTFILES_PATH["common"]}/.template"
 
 	log_info "Resetting openssh config directory..."
-	local openssh_dir="/etc/ssh"
-	local sshd_config="${openssh_dir}/sshd_config"
-	[[ -e "$openssh_dir" ]] && $SUDO rm -rf "$openssh_dir"
-	$SUDO install -d -m 0755 "$openssh_dir"
-	$SUDO install -m 0600 "${template_dir}/openssh-server/sshd_config" "$sshd_config"
+	local sshd_config="${SYS_PATH["openssh-server"]}/sshd_config"
+	local sshd_config_tmpl="${template_dir}/openssh-server/sshd_config"
+	set_template "${SYS_PATH["openssh-server"]}"
+	set_template "$sshd_config" "$sshd_config_tmpl"
 
 	# Generate port number
 	local ssh_port="$((1024 + RANDOM % (65535 - 1024 + 1)))"
 	sudo sed -i "s/^Port [0-9]\+/Port $ssh_port/" "$sshd_config"
-	printf "SSH port: %s\n" "$ssh_port" >>"${SYSTEM_PATH["dotfiles_secret"]}"
+	printf "SSH port: %s\n" "$ssh_port" >>"${SYS_PATH["dotfiles_secret"]}"
 
 	log_info "Resetting home ssh directory..."
-	local ssh_dir="${SYSTEM_PATH["home"]}/.ssh"
-	local authorized_keys="$ssh_dir/authorized_keys"
-	[[ -e "$ssh_dir" ]] && rm -rf "$ssh_dir"
-	install -d -m 0700 "$ssh_dir"
-	install -m 600 /dev/null "$authorized_keys"
+	set_template "${SYS_PATH["user_ssh"]}"
+	set_template "${SYS_PATH["user_ssh"]}/authorized_keys"
 
 	log_info "Resetting iptables directory..."
-	local iptables_dir="/etc/iptables"
-	local rules_v4="${iptables_dir}/rules.v4"
-	local rules_v6="${iptables_dir}/rules.v6"
-	[[ -e "$iptables_dir" ]] && $SUDO rm -rf "$iptables_dir"
-	$SUDO install -d -m 0755 "$iptables_dir"
-	$SUDO install -m 644 "${template_dir}/iptables/rules.v4" "$rules_v4"
-	$SUDO install -m 644 "${template_dir}/iptables/rules.v6" "$rules_v6"
+	local rules_v4=
+	local rules_v6="${SYS_PATH["iptables"]}/rules.v6"
+
+	# $SUDO install -d -m 0755 "$iptables_dir"
+	# $SUDO install -m 0644 "${template_dir}/iptables/rules.v4" "$rules_v4"
+	# $SUDO install -m 0644 "${template_dir}/iptables/rules.v6" "$rules_v6"
+	# $SUDO install -m 0644 "${iptables_dir}/iptables-restore.service"
 
 	if [[ "$IS_TEST" == "false" ]]; then
 		log_info "Restarting sshd..."
 		$SUDO systemctl restart sshd
+		log_info "Reloading systemctl daemon..."
+		$SUDO systemctl daemon-reload
+		log_info "Enabling iptables-restore service..."
+		$SUDO systemctl enable iptables-restore.service
 	fi
 }
 
@@ -464,8 +519,8 @@ main() {
 	log_info "Start installation script as ${COLOR["yellow"]}$(whoami)${COLOR["reset"]}..."
 
 	if [[ "$IS_INITIALIZED" == "true" ]]; then
-		log_debug "Change current directory to ${SYSTEM_PATH["home"]}"
-		cd "${SYSTEM_PATH["home"]}"
+		log_debug "Change current directory to ${SYS_PATH["home"]}"
+		cd "${SYS_PATH["home"]}"
 		"do_setup_${HOST}"
 	else
 		if [[ -n "$SUDO" ]]; then
@@ -478,11 +533,11 @@ main() {
 
 		add_user "$INSTALL_USER" "$passwd"
 
-		log_info "Create secret file on ${SYSTEM_PATH["dotfiles_secret"]}"
-		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"${SYSTEM_PATH["dotfiles_secret"]}"
-		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"${SYSTEM_PATH["dotfiles_secret"]}"
-		chown "$INSTALL_USER:$INSTALL_USER" "${SYSTEM_PATH["dotfiles_secret"]}"
-		chmod 600 "${SYSTEM_PATH["dotfiles_secret"]}"
+		log_info "Create secret file on ${SYS_PATH["dotfiles_secret"]}"
+		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"${SYS_PATH["dotfiles_secret"]}"
+		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"${SYS_PATH["dotfiles_secret"]}"
+		chown "$INSTALL_USER:$INSTALL_USER" "${SYS_PATH["dotfiles_secret"]}"
+		chmod 600 "${SYS_PATH["dotfiles_secret"]}"
 
 		local run_cmd
 		get_script_run_cmd "$(get_script_path)" "true" "run_cmd"
@@ -496,16 +551,16 @@ main() {
 if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
 	# Download script
 	if [[ "$IS_TEST" == "true" ]]; then
-		dev_install_file="${SYSTEM_PATH["dotfiles_dev_data"]}/install.sh"
+		dev_install_file="${SYS_PATH["dotfiles_dev_data"]}/install.sh"
 		log_info "Copying script from ${COLOR["yellow"]}$dev_install_file${COLOR["reset"]}..."
-		cp "$dev_install_file" "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
+		cp "$dev_install_file" "${SYS_PATH["dotfiles_tmp_installer"]}"
 	else
 		log_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository..."
-		curl -fsSL "${URL["dotfiles_installer"]}" -o "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
+		curl -fsSL "${URL["dotfiles_installer"]}" -o "${SYS_PATH["dotfiles_tmp_installer"]}"
 	fi
-	chmod +x "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
+	chmod +x "${SYS_PATH["dotfiles_tmp_installer"]}"
 
-	get_script_run_cmd "${SYSTEM_PATH["dotfiles_tmp_installer"]}" "false" "run_cmd"
+	get_script_run_cmd "${SYS_PATH["dotfiles_tmp_installer"]}" "false" "run_cmd"
 	printf "Restarting...\n\n"
 	"${run_cmd[@]}"
 else
