@@ -85,24 +85,27 @@ declare -r IS_LOCAL=$(get_arg "local")
 declare -r IS_DOCKER=$(get_arg "docker")
 # shellcheck disable=SC2155
 declare -r IS_INITIALIZED=$(get_arg "initialized")
+
 declare -Ar HOST_OS=(
 	["vultr"]="debian"
 	["arch"]="arch"
 	["mc"]="ubuntu"
 )
 declare -r OS="${HOST_OS["$HOST"]}"
-
-declare -r DOTFILES_UPSTREAM="main"
-declare -r DOTFILES_DIR_NAME=".dotfiles"
 declare -r HOST_PREFIX="${HOST^^}_"
+
+declare -A DOTFILES_CONF
+DOTFILES_CONF["git_upstream"]="main"
+DOTFILES_CONF["dirname"]=".dotfiles"
+DOTFILES_CONF["docker_vol_dir"]="/var/tmp/${DOTFILES_CONF["dirname"]}"
+DOTFILES_CONF["tmp_installer_file"]="/var/tmp/install_dotfiles.sh"
+declare -r DOTFILES_CONF
 
 declare -A USER_PATH
 USER_PATH["home"]="/home/$INSTALL_USER"
 USER_PATH["ssh"]="${USER_PATH["home"]}/.ssh"
-USER_PATH["dotfiles_repo"]="${USER_PATH["home"]}/$DOTFILES_DIR_NAME"
+USER_PATH["dotfiles_repo"]="${USER_PATH["home"]}/${DOTFILES_CONF["dirname"]}"
 USER_PATH["dotfiles_secret"]="${USER_PATH["home"]}/dotfiles_secret"
-USER_PATH["dotfiles_docker_vol"]="/var/tmp/$DOTFILES_DIR_NAME"
-USER_PATH["dotfiles_tmp_installer"]="/var/tmp/install_dotfiles.sh"
 declare -r USER_PATH
 
 declare -A DOTFILES_REPO_PATH
@@ -316,9 +319,9 @@ clone_dotfiles_repo() {
 	fi
 
 	if [[ "$IS_LOCAL" == "true" ]]; then
-		ln -s "${USER_PATH["dotfiles_docker_vol"]}" "${USER_PATH["dotfiles_repo"]}"
+		ln -s "${DOTFILES_CONF["docker_vol_dir"]}" "${USER_PATH["dotfiles_repo"]}"
 	else
-		git clone -b "$DOTFILES_UPSTREAM" "${URL["dotfiles_repo"]}" "${USER_PATH["dotfiles_repo"]}"
+		git clone -b "${DOTFILES_CONF["git_upstream"]}" "${URL["dotfiles_repo"]}" "${USER_PATH["dotfiles_repo"]}"
 	fi
 }
 
@@ -554,16 +557,16 @@ main() {
 if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
 	# Download script
 	if [[ "$IS_LOCAL" == "true" ]]; then
-		dev_install_file="${USER_PATH["dotfiles_docker_vol"]}/install.sh"
+		dev_install_file="${DOTFILES_CONF["docker_vol_dir"]}/install.sh"
 		log_info "Copying script from ${COLOR["yellow"]}$dev_install_file${COLOR["reset"]}..."
-		cp "$dev_install_file" "${USER_PATH["dotfiles_tmp_installer"]}"
+		cp "$dev_install_file" "${DOTFILES_CONF["tmp_installer_file"]}"
 	else
 		log_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository..."
-		curl -fsSL "${URL["dotfiles_installer"]}" -o "${USER_PATH["dotfiles_tmp_installer"]}"
+		curl -fsSL "${URL["dotfiles_installer"]}" -o "${DOTFILES_CONF["tmp_installer_file"]}"
 	fi
-	chmod +x "${USER_PATH["dotfiles_tmp_installer"]}"
+	chmod +x "${DOTFILES_CONF["tmp_installer_file"]}"
 
-	get_script_run_cmd "${USER_PATH["dotfiles_tmp_installer"]}" "false" "run_cmd"
+	get_script_run_cmd "${DOTFILES_CONF["tmp_installer_file"]}" "false" "run_cmd"
 	printf "Restarting...\n\n"
 	"${run_cmd[@]}"
 else
