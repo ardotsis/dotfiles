@@ -1,15 +1,18 @@
 #!/bin/bash
 set -e -u -o pipefail -C
 
-declare -A _PARAMS=()
-declare -a _ARGS=("$@")
+# Set your kawaii name!! hehehe~~
+declare -r DEFAULT_USERNAME="ardotsis"
+
 declare -ar _PARAM_0=("--host" "-h" "value" "")
-declare -ar _PARAM_1=("--username" "-u" "value" "ardotsis")
+declare -ar _PARAM_1=("--username" "-u" "value" "$DEFAULT_USERNAME")
 declare -ar _PARAM_2=("--initialized" "-i" "flag" "false")
 declare -ar _PARAM_3=("--local" "-l" "flag" "false")
 declare -ar _PARAM_4=("--docker" "-d" "flag" "false")
 
 _IS_ARGS_PARSED="false"
+declare -A _PARAMS=()
+declare -a _ARGS=("$@")
 
 _parse_args() {
 	show_missing_param_err() {
@@ -61,7 +64,7 @@ _parse_args() {
 		i=$((i + 1))
 	done
 
-	readonly _IS_ARGS_PARSED="true"
+	declare -r _IS_ARGS_PARSED="true"
 }
 
 get_arg() {
@@ -73,74 +76,64 @@ get_arg() {
 }
 
 # shellcheck disable=SC2155
-readonly HOST=$(get_arg "host")
+declare -r HOST=$(get_arg "host")
 # shellcheck disable=SC2155
-readonly INSTALL_USER=$(get_arg "username")
+declare -r INSTALL_USER=$(get_arg "username")
 # shellcheck disable=SC2155
-readonly IS_LOCAL=$(get_arg "local")
+declare -r IS_LOCAL=$(get_arg "local")
 # shellcheck disable=SC2155
-readonly IS_DOCKER=$(get_arg "docker")
+declare -r IS_DOCKER=$(get_arg "docker")
 # shellcheck disable=SC2155
-readonly IS_INITIALIZED=$(get_arg "initialized")
-
+declare -r IS_INITIALIZED=$(get_arg "initialized")
 declare -Ar HOST_OS=(
 	["vultr"]="debian"
 	["arch"]="arch"
 	["mc"]="ubuntu"
 )
+declare -r OS="${HOST_OS["$HOST"]}"
 
-readonly OS="${HOST_OS["$HOST"]}"
+declare -r DOTFILES_UPSTREAM="main"
+declare -r DOTFILES_DIR_NAME=".dotfiles"
+declare -r HOST_PREFIX="${HOST^^}_"
 
-if [[ "$(id -u)" == "0" ]]; then
-	readonly SUDO=""
-else
-	if [[ "$OS" == "debian" ]]; then
-		readonly SUDO="sudo"
-	fi
-fi
+declare -A USER_PATH
+USER_PATH["home"]="/home/$INSTALL_USER"
+USER_PATH["ssh"]="${USER_PATH["home"]}/.ssh"
+USER_PATH["dotfiles_repo"]="${USER_PATH["home"]}/$DOTFILES_DIR_NAME"
+USER_PATH["dotfiles_secret"]="${USER_PATH["home"]}/dotfiles_secret"
+USER_PATH["dotfiles_docker_vol"]="/var/tmp/$DOTFILES_DIR_NAME"
+USER_PATH["dotfiles_tmp_installer"]="/var/tmp/install_dotfiles.sh"
+declare -r USER_PATH
 
-readonly DOTFILES_UPSTREAM="main"
-readonly DOTFILES_DIR_NAME=".dotfiles"
-readonly HOST_PREFIX="${HOST^^}_"
+declare -A DOTFILES_REPO_PATH
+DOTFILES_REPO_PATH["src"]="${USER_PATH["dotfiles_repo"]}/dotfiles"
+DOTFILES_REPO_PATH["common"]="${DOTFILES_REPO_PATH["src"]}/common"
+DOTFILES_REPO_PATH["host"]="${DOTFILES_REPO_PATH["src"]}/hosts/$HOST"
+DOTFILES_REPO_PATH["packages"]="${DOTFILES_REPO_PATH["src"]}/packages.txt"
+declare -r DOTFILES_REPO_PATH
 
-declare -A SYSTEM_PATH
-SYSTEM_PATH["home"]="/home/$INSTALL_USER"
-SYSTEM_PATH["home_ssh"]="${SYSTEM_PATH["home"]}/.ssh"
-SYSTEM_PATH["dotfiles_repo"]="${SYSTEM_PATH["home"]}/$DOTFILES_DIR_NAME"
-SYSTEM_PATH["dotfiles_secret"]="${SYSTEM_PATH["home"]}/dotfiles_secret"
-SYSTEM_PATH["dotfiles_dev_data"]="/var/tmp/$DOTFILES_DIR_NAME"
-SYSTEM_PATH["dotfiles_tmp_installer"]="/var/tmp/install_dotfiles.sh"
-declare -r SYSTEM_PATH
+declare -A OPENSSH_SERVER_PATH
+OPENSSH_SERVER_PATH["etc"]="/etc/ssh"
+OPENSSH_SERVER_PATH["sshd_config"]="${OPENSSH_SERVER_PATH["etc"]}/sshd_config"
+declare -r OPENSSH_SERVER_PATH
 
-declare -A DOTFILES_PATH
-DOTFILES_PATH["src"]="${SYSTEM_PATH["dotfiles_repo"]}/dotfiles"
-DOTFILES_PATH["common"]="${DOTFILES_PATH["src"]}/common"
-DOTFILES_PATH["host"]="${DOTFILES_PATH["src"]}/hosts/$HOST"
-DOTFILES_PATH["packages"]="${DOTFILES_PATH["src"]}/packages.txt"
-declare -r DOTFILES_PATH
-
-declare -A OPENSSH_SERVER
-OPENSSH_SERVER["etc"]="/etc/ssh"
-OPENSSH_SERVER["sshd_config"]="${OPENSSH_SERVER["etc"]}/sshd_config"
-declare -r OPENSSH_SERVER
-
-declare -A IPTABLES
-IPTABLES["etc"]="/etc/iptables"
-IPTABLES["rules_v4"]="${IPTABLES["etc"]}/rules.v4"
-IPTABLES["rules_v6"]="${IPTABLES["etc"]}/rules.v6"
-declare -r IPTABLES
+declare -A IPTABLES_PATH
+IPTABLES_PATH["etc"]="/etc/iptables"
+IPTABLES_PATH["rules_v4"]="${IPTABLES_PATH["etc"]}/rules.v4"
+IPTABLES_PATH["rules_v6"]="${IPTABLES_PATH["etc"]}/rules.v6"
+declare -r IPTABLES_PATH
 
 declare -Ar PERMISSION=(
 	# System
-	["${SYSTEM_PATH["home_ssh"]}"]="d $INSTALL_USER $INSTALL_USER 0700"
-	["${SYSTEM_PATH["home_ssh"]}/authorized_keys"]="d $INSTALL_USER $INSTALL_USER 0600"
+	["${USER_PATH["ssh"]}"]="d $INSTALL_USER $INSTALL_USER 0700"
+	["${USER_PATH["ssh"]}/authorized_keys"]="d $INSTALL_USER $INSTALL_USER 0600"
 	# openssh-server
-	["${OPENSSH_SERVER["etc"]}"]="d root root 0755"
-	["${OPENSSH_SERVER["sshd_config"]}"]="f root root 0600"
+	["${OPENSSH_SERVER_PATH["etc"]}"]="d root root 0755"
+	["${OPENSSH_SERVER_PATH["sshd_config"]}"]="f root root 0600"
 	# iptables
-	["${IPTABLES["etc"]}"]="d root root 0700"
-	["${IPTABLES["rules_v4"]}"]="f root root 0600"
-	["${IPTABLES["rules_v6"]}"]="f root root 0600"
+	["${IPTABLES_PATH["etc"]}"]="d root root 0700"
+	["${IPTABLES_PATH["rules_v4"]}"]="f root root 0600"
+	["${IPTABLES_PATH["rules_v6"]}"]="f root root 0600"
 )
 
 declare -Ar URL=(
@@ -168,6 +161,14 @@ declare -Ar LOG_COLOR=(
 	["var"]="${COLOR["purple"]}"
 	["value"]="${COLOR["cyan"]}"
 )
+
+if [[ "$(id -u)" == "0" ]]; then
+	declare -r SUDO=""
+else
+	if [[ "$OS" == "debian" ]]; then
+		declare -r SUDO="sudo"
+	fi
+fi
 
 ##################################################
 #                Common Functions                #
@@ -315,9 +316,9 @@ clone_dotfiles_repo() {
 	fi
 
 	if [[ "$IS_LOCAL" == "true" ]]; then
-		ln -s "${SYSTEM_PATH["dotfiles_dev_data"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
+		ln -s "${USER_PATH["dotfiles_docker_vol"]}" "${USER_PATH["dotfiles_repo"]}"
 	else
-		git clone -b "$DOTFILES_UPSTREAM" "${URL["dotfiles_repo"]}" "${SYSTEM_PATH["dotfiles_repo"]}"
+		git clone -b "$DOTFILES_UPSTREAM" "${URL["dotfiles_repo"]}" "${USER_PATH["dotfiles_repo"]}"
 	fi
 }
 
@@ -326,7 +327,7 @@ install_listed_packages() {
 		if ! is_cmd_exist "$pkg"; then
 			install_package "$pkg"
 		fi
-	done <"${DOTFILES_PATH["packages"]}"
+	done <"${DOTFILES_REPO_PATH["packages"]}"
 }
 
 convert_home_path() {
@@ -334,9 +335,9 @@ convert_home_path() {
 	local to="$2"
 
 	# shellcheck disable=SC2034
-	local home="${SYSTEM_PATH["home"]}"
-	local common="${DOTFILES_PATH["common"]}"
-	local host="${DOTFILES_PATH["host"]}"
+	local home="${USER_PATH["home"]}"
+	local common="${DOTFILES_REPO_PATH["common"]}"
+	local host="${DOTFILES_REPO_PATH["host"]}"
 
 	local from
 	for home_type in "home" "common" "host"; do
@@ -350,7 +351,7 @@ convert_home_path() {
 }
 
 do_link() {
-	local a_home_dir="${1-${SYSTEM_PATH["home"]}}"
+	local a_home_dir="${1-${USER_PATH["home"]}}"
 	local dir_type="${2:-}"
 	local prefix_base="${3:-}"
 
@@ -481,21 +482,21 @@ do_setup_vultr() {
 		remove_package "ufw"
 	fi
 
-	local template_dir="${DOTFILES_PATH["src"]}/template"
+	local template_dir="${DOTFILES_REPO_PATH["src"]}/template"
 
 	log_info "Resetting openssh config directory..."
 	local sshd_config_tmpl="${template_dir}/openssh-server/sshd_config"
-	set_template "${OPENSSH_SERVER["etc"]}"
-	set_template "${OPENSSH_SERVER["etc"]}" "$sshd_config_tmpl"
+	set_template "${OPENSSH_SERVER_PATH["etc"]}"
+	set_template "${OPENSSH_SERVER_PATH["etc"]}" "$sshd_config_tmpl"
 
 	# Generate port number
 	local ssh_port="$((1024 + RANDOM % (65535 - 1024 + 1)))"
 	sudo sed -i "s/^Port [0-9]\+/Port $ssh_port/" "$sshd_config"
-	printf "SSH port: %s\n" "$ssh_port" >>"${SYSTEM_PATH["dotfiles_secret"]}"
+	printf "SSH port: %s\n" "$ssh_port" >>"${USER_PATH["dotfiles_secret"]}"
 
 	log_info "Resetting home ssh directory..."
-	set_template "${SYSTEM_PATH["home_ssh"]}"
-	set_template "${SYSTEM_PATH["home_ssh"]}/authorized_keys"
+	set_template "${USER_PATH["ssh"]}"
+	set_template "${USER_PATH["ssh"]}/authorized_keys"
 
 	log_info "Resetting iptables directory..."
 	# $SUDO install -d -m 0755 "$iptables_dir"
@@ -521,8 +522,8 @@ main() {
 	log_info "Start installation script as ${COLOR["yellow"]}$(whoami)${COLOR["reset"]}..."
 
 	if [[ "$IS_INITIALIZED" == "true" ]]; then
-		log_debug "Change current directory to ${SYSTEM_PATH["home"]}"
-		cd "${SYSTEM_PATH["home"]}"
+		log_debug "Change current directory to ${USER_PATH["home"]}"
+		cd "${USER_PATH["home"]}"
 		"do_setup_${HOST}"
 	else
 		if [[ -n "$SUDO" ]]; then
@@ -535,11 +536,11 @@ main() {
 
 		add_user "$INSTALL_USER" "$passwd"
 
-		log_info "Create secret file on ${SYSTEM_PATH["dotfiles_secret"]}"
-		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"${SYSTEM_PATH["dotfiles_secret"]}"
-		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"${SYSTEM_PATH["dotfiles_secret"]}"
-		chown "$INSTALL_USER:$INSTALL_USER" "${SYSTEM_PATH["dotfiles_secret"]}"
-		chmod 600 "${SYSTEM_PATH["dotfiles_secret"]}"
+		log_info "Create secret file on ${USER_PATH["dotfiles_secret"]}"
+		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"${USER_PATH["dotfiles_secret"]}"
+		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"${USER_PATH["dotfiles_secret"]}"
+		chown "$INSTALL_USER:$INSTALL_USER" "${USER_PATH["dotfiles_secret"]}"
+		chmod 600 "${USER_PATH["dotfiles_secret"]}"
 
 		local run_cmd
 		get_script_run_cmd "$(get_script_path)" "true" "run_cmd"
@@ -553,16 +554,16 @@ main() {
 if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
 	# Download script
 	if [[ "$IS_LOCAL" == "true" ]]; then
-		dev_install_file="${SYSTEM_PATH["dotfiles_dev_data"]}/install.sh"
+		dev_install_file="${USER_PATH["dotfiles_docker_vol"]}/install.sh"
 		log_info "Copying script from ${COLOR["yellow"]}$dev_install_file${COLOR["reset"]}..."
-		cp "$dev_install_file" "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
+		cp "$dev_install_file" "${USER_PATH["dotfiles_tmp_installer"]}"
 	else
 		log_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository..."
-		curl -fsSL "${URL["dotfiles_installer"]}" -o "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
+		curl -fsSL "${URL["dotfiles_installer"]}" -o "${USER_PATH["dotfiles_tmp_installer"]}"
 	fi
-	chmod +x "${SYSTEM_PATH["dotfiles_tmp_installer"]}"
+	chmod +x "${USER_PATH["dotfiles_tmp_installer"]}"
 
-	get_script_run_cmd "${SYSTEM_PATH["dotfiles_tmp_installer"]}" "false" "run_cmd"
+	get_script_run_cmd "${USER_PATH["dotfiles_tmp_installer"]}" "false" "run_cmd"
 	printf "Restarting...\n\n"
 	"${run_cmd[@]}"
 else

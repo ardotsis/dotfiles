@@ -84,6 +84,8 @@
     "docker-desktop"
   ],
   "terminal.integrated.enableMultiLinePasteWarning": "never",
+  "terminal.integrated.fontFamily": "'Hack Nerd Font', Consolas, 'Courier New', monospace",
+  "terminal.integrated.fontSize": 12,
   "terminal.integrated.stickyScroll.enabled": false,
   "terminal.integrated.tabs.enabled": false,
   "vscode-neovim.compositeKeys": {
@@ -95,7 +97,8 @@
   "vscode-neovim.neovimInitVimPaths.win32": "C:\\Users\\owner\\AppData\\Local\\nvim\\init_vscode.lua",
   "window.commandCenter": false,
   "window.menuBarVisibility": "compact",
-  "workbench.colorTheme": "Gruvbox in Black Bordered",
+  "workbench.activityBar.location": "default",
+  "workbench.colorTheme": "Best Themes - Gruvbox Material Dark",
   "workbench.iconTheme": "material-icon-theme",
   "workbench.layoutControl.enabled": false,
   "workbench.statusBar.visible": false

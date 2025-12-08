@@ -2,7 +2,7 @@
 
 @REM Batch arguments
 set "INSTALL_SCRIPT_PARAMS=%~1"
-set "REBUILD_FLAG=%~2"
+set "FLAG=%~2"
 
 @REM Paths
 set "REPO_DIR=%~dp0.."
@@ -21,7 +21,7 @@ for /f "tokens=*" %%i in ('docker ps -aq --filter "ancestor=%IMAGE%" -q') do (
   docker rm -f %%i
 )
 
-if "%REBUILD_FLAG%"=="--rebuild" (
+if "%FLAG%"=="--build" (
   docker build --no-cache -f "%DOCKERFILE%" -t "%IMAGE%" "%REPO_DIR%"
 
   echo Cleaning up dangling images...
@@ -33,7 +33,6 @@ if "%REBUILD_FLAG%"=="--rebuild" (
 )
 
 echo.
-echo ========== Begin Docker container session ==========
 docker run ^
 --rm ^
 --mount type=bind,source="%REPO_DIR%",target="%DOTFILES_DEV_DATA%",readonly ^
