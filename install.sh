@@ -498,21 +498,19 @@ do_setup_vultr() {
 		remove_package "ufw"
 	fi
 
-	log_info "Creating home SSH directory.."
 	set_template "$HOME_SSH_DIR"
 	set_template "$HOME_SSH_DIR/authorized_keys"
 
-	log_info "Creating OpenSSH "
 	local sshd_config_tmpl="${DOTFILES_REPO["template"]}/openssh-server/sshd_config"
 	set_template "${OPENSSH_SERVER["etc"]}"
 	set_template "${OPENSSH_SERVER["sshd_config"]}" "$sshd_config_tmpl"
 
-	# Generate port number
+	# Generate SSH port number
 	local ssh_port="$((1024 + RANDOM % (65535 - 1024 + 1)))"
 	sudo sed -i "s/^Port [0-9]\+/Port $ssh_port/" "${OPENSSH_SERVER["sshd_config"]}"
 	printf "SSH port: %s\n" "$ssh_port" >>"$SECRET_FILE"
 
-	log_info "Resetting iptables directory..."
+	# log_info "Resetting iptables directory..."
 	# $SUDO install -d -m 0755 "$iptables_dir"
 	# $SUDO install -m 0644 "${template_dir}/iptables/rules.v4" "$rules_v4"
 	# $SUDO install -m 0644 "${template_dir}/iptables/rules.v6" "$rules_v6"
