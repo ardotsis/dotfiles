@@ -93,12 +93,14 @@ declare -r OS="${HOST_OS["$HOST"]}"
 declare -r HOST_PREFIX="${HOST^^}_"
 declare -r HOME_DIR="/home/$INSTALL_USER"
 declare -r HOME_SSH_DIR="$HOME_DIR/.ssh"
+declare -r _TMP_DIR="/var/tmp"
+
+declare -r GIT_REMOTE_BRANCH="main"
 declare -r REPO_DIRNAME=".dotfiles"
 declare -r REPO_DIR="$HOME_DIR/$REPO_DIRNAME"
 declare -r SECRET_FILE="$HOME_DIR/SECRET_FILE"
-declare -r DOCKER_VOL_DIR="/var/tmp/$REPO_DIRNAME"
-declare -r TMP_INSTALL_SCRIPT_FILE="/var/tmp/install_dotfiles.sh"
-declare -r GIT_REMOTE_BRANCH="main"
+declare -r DOCKER_VOL_DIR="$_TMP_DIR/$REPO_DIRNAME"
+declare -r TMP_INSTALL_SCRIPT_FILE="$_TMP_DIR/install_dotfiles.sh"
 
 declare -A DOTFILES_REPO
 DOTFILES_REPO["src"]="$REPO_DIR/dotfiles"
