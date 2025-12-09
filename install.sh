@@ -74,16 +74,19 @@ get_arg() {
 	printf %s "${_PARAMS[$name]}"
 }
 
-# shellcheck disable=SC2155
-declare -r HOST=$(get_arg "host")
-# shellcheck disable=SC2155
-declare -r INSTALL_USER=$(get_arg "username")
-# shellcheck disable=SC2155
-declare -r IS_LOCAL=$(get_arg "local")
-# shellcheck disable=SC2155
-declare -r IS_DOCKER=$(get_arg "docker")
-# shellcheck disable=SC2155
-declare -r IS_INITIALIZED=$(get_arg "initialized")
+HOST=$(get_arg "host")
+declare -r HOST
+INSTALL_USER=$(get_arg "username")
+declare -r INSTALL_USER
+IS_LOCAL=$(get_arg "local")
+declare -r IS_LOCAL
+IS_DOCKER=$(get_arg "docker")
+declare -r IS_DOCKER
+IS_INITIALIZED=$(get_arg "initialized")
+declare -r IS_INITIALIZED
+CURRENT_USER="$(whoami)"
+declare -r CURRENT_USER
+
 declare -Ar HOST_OS=(
 	["vultr"]="debian"
 	["arch"]="arch"
@@ -98,10 +101,8 @@ declare -r GIT_REMOTE_BRANCH="main"
 declare -r REPO_DIRNAME=".dotfiles"
 declare -r REPO_DIR="$HOME_DIR/$REPO_DIRNAME"
 declare -r SECRET_FILE="$HOME_DIR/SECRET_FILE"
-declare -r DOCKER_VOL_DIR="$_TMP_DIR/$REPO_DIRNAME"
+declare -r DOCKER_VOL_DIR="$_TMP_DIR/${REPO_DIRNAME}_docker-volume"
 declare -r TMP_INSTALL_SCRIPT_FILE="$_TMP_DIR/install_dotfiles.sh"
-# declare -ar SYMLINK_EXCLUDES=("")
-# TODO: .dotfilesignore (use regex in txt file -> template/*)
 
 declare -A DOTFILES_REPO
 DOTFILES_REPO["src"]="$REPO_DIR/dotfiles"
@@ -123,9 +124,12 @@ IPTABLES["rules_v6"]="${IPTABLES["etc"]}/rules.v6"
 declare -r IPTABLES
 
 declare -Ar PERMISSION=(
-	# Home
+	# Home items
 	["$HOME_SSH_DIR"]="d $INSTALL_USER $INSTALL_USER 0700"
-	["$HOME_SSH_DIR/authorized_keys"]="d $INSTALL_USER $INSTALL_USER 0600"
+	["$HOME_SSH_DIR/authorized_keys"]="f $INSTALL_USER $INSTALL_USER 0600"
+	# Script item
+	["$SECRET_FILE"]="f $INSTALL_USER $INSTALL_USER 0600"
+	["$TMP_INSTALL_SCRIPT_FILE"]="f $CURRENT_USER $CURRENT_USER 0700"
 	# openssh-server
 	["${OPENSSH_SERVER["etc"]}"]="d root root 0755"
 	["${OPENSSH_SERVER["sshd_config"]}"]="f root root 0600"
@@ -137,7 +141,7 @@ declare -Ar PERMISSION=(
 
 declare -Ar URL=(
 	["dotfiles_repo"]="https://github.com/ardotsis/dotfiles.git"
-	["dotfiles_installer"]="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
+	["dotfiles_install_script"]="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
 )
 
 declare -Ar COLOR=(
@@ -226,6 +230,7 @@ get_script_run_cmd() {
 	)
 	[[ "$initialized" == "true" ]] && arr_ref+=("--initialized") || true
 	[[ "$IS_LOCAL" == "true" ]] && arr_ref+=("--local") || true
+	[[ "$IS_DOCKER" == "true" ]] && arr_ref+=("--docker") || true
 }
 
 is_cmd_exist() {
@@ -278,9 +283,10 @@ add_user() {
 
 set_template() {
 	local item_path="$1"
-	local src_file_path="${2:-}"
+	local template_path="${2:-}"
+	local file_url="${3:-}"
 
-	local perm=("${PERMISSION["$item_path"]}")
+	read -r -a perm <<<"${PERMISSION[$item_path]}" # TODO: Don't use 'read'
 	local type="${perm[0]}"
 	local group="${perm[1]}"
 	local user="${perm[2]}"
@@ -291,16 +297,27 @@ set_template() {
 		$SUDO rm -rf "$item_path"
 	fi
 
-	local install_cmd=("$SUDO" "install" "-m" "$num" "-o" "$user" "-g" "$group")
-	if [[ "$type" == "f" ]]; then
-		if [[ -n "$src_file_path" ]]; then
-			install_cmd+=("$src_file_path" "$item_path")
-		else
-			install_cmd+=("/dev/null" "$item_path")
-		fi
-	elif [[ "$type" == "d" ]]; then
-		install_cmd+=("$item_path" "-d")
+	local install_cmd=("install" "-m" "$num" "-o" "$user" "-g" "$group")
+
+	if [[ -n "$SUDO" ]]; then
+		install_cmd=("$SUDO" "${install_cmd[@]}")
 	fi
+
+	if [[ -n "$file_url" ]]; then
+		install_cmd=("curl" "-fsSL" "$file_url" "|" "${install_cmd[@]}")
+	else
+		if [[ "$type" == "f" ]]; then
+			if [[ -n "$template_path" ]]; then
+				install_cmd=("${install_cmd[@]}" "$template_path" "$item_path")
+			else
+				install_cmd=("${install_cmd[@]}" "/dev/null" "$item_path")
+			fi
+		elif [[ "$type" == "d" ]]; then
+			install_cmd=("${install_cmd[@]}" "$item_path" "-d")
+		fi
+	fi
+
+	log_info "Create '$item_path' ($user:$group $num)"
 
 	declare -p "install_cmd"
 	"${install_cmd[@]}"
@@ -453,7 +470,7 @@ do_link() {
 			elif [[ -f "$actual_item" ]]; then
 				if [[ "$item_type" == "host" && -n "$prefix_base" ]]; then
 					log_debug "Rename home link"
-					# todo cache
+					# TODO cache
 					local basename_="${prefix_base##*/}"
 					local original_dir="${basename_#"${HOST_PREFIX}"}"
 					local as_home_item="${a_home_dir%/*}/${original_dir}"
@@ -486,13 +503,13 @@ do_setup_vultr() {
 	set_template "$HOME_SSH_DIR/authorized_keys"
 
 	log_info "Creating OpenSSH "
-	local sshd_config_tmpl="${DOTFILES_REPO["template"]}}/openssh-server/sshd_config"
+	local sshd_config_tmpl="${DOTFILES_REPO["template"]}/openssh-server/sshd_config"
 	set_template "${OPENSSH_SERVER["etc"]}"
 	set_template "${OPENSSH_SERVER["sshd_config"]}" "$sshd_config_tmpl"
 
 	# Generate port number
 	local ssh_port="$((1024 + RANDOM % (65535 - 1024 + 1)))"
-	sudo sed -i "s/^Port [0-9]\+/Port $ssh_port/" "$sshd_config"
+	sudo sed -i "s/^Port [0-9]\+/Port $ssh_port/" "${OPENSSH_SERVER["sshd_config"]}"
 	printf "SSH port: %s\n" "$ssh_port" >>"$SECRET_FILE"
 
 	log_info "Resetting iptables directory..."
@@ -516,7 +533,7 @@ do_setup_arch() {
 }
 
 main() {
-	log_info "Start installation script as ${COLOR["yellow"]}$(whoami)${COLOR["reset"]}..."
+	log_info "Start installation script as ${COLOR["yellow"]}$CURRENT_USER${COLOR["reset"]}..."
 
 	if [[ "$IS_INITIALIZED" == "true" ]]; then
 		log_debug "Change current directory to $HOME_DIR"
@@ -536,8 +553,7 @@ main() {
 		log_info "Create secret file on $SECRET_FILE"
 		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"$SECRET_FILE"
 		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"$SECRET_FILE"
-		chown "$INSTALL_USER:$INSTALL_USER" "$SECRET_FILE"
-		chmod 600 "$SECRET_FILE"
+		set_template "$SECRET_FILE"
 
 		local run_cmd
 		get_script_run_cmd "$(get_script_path)" "true" "run_cmd"
@@ -556,9 +572,9 @@ if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
 		cp "$dev_install_file" "$TMP_INSTALL_SCRIPT_FILE"
 	else
 		log_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository..."
-		curl -fsSL "${URL["dotfiles_installer"]}" -o "$TMP_INSTALL_SCRIPT_FILE"
+		# curl -fsSL "${URL["dotfiles_installer"]}" -o "$TMP_INSTALL_SCRIPT_FILE"
+		set_template "$TMP_INSTALL_SCRIPT_FILE" "" "${URL}"
 	fi
-	chmod +x "$TMP_INSTALL_SCRIPT_FILE"
 
 	get_script_run_cmd "$TMP_INSTALL_SCRIPT_FILE" "false" "run_cmd"
 	printf "Restarting...\n\n"

@@ -103,10 +103,10 @@
   "workbench.activityBar.location": "default",
   "workbench.colorCustomizations": {
     "editor.inactiveSelectionBackground": "#f7e9f220",
-    "editor.selectionBackground": "#ff80ced5",
-    "editor.selectionForeground": "#ffffff",
+    "editor.selectionBackground": "#ff80cede",
+    "editor.selectionForeground": "#1c1417",
     "editor.selectionHighlightBackground": "#f7e9f250",
-    "editor.selectionHighlightBorder": "#ff89c0"
+    "editor.selectionHighlightBorder": "#ff89c081"
   },
   "workbench.colorTheme": "Gruvbox in Black Bordered",
   "workbench.iconTheme": "material-icon-theme",

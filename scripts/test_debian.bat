@@ -11,14 +11,17 @@ set "IMAGE_NAME=dotfiles-debian"
 set "IMAGE_TAG=latest"
 set "IMAGE=%IMAGE_NAME%:%IMAGE_TAG%"
 set "CONTAINER_NAME=%IMAGE_NAME%-container"
-set "DOTFILES_DEV_DATA=/var/tmp/.dotfiles"
+set "DOTFILES_VOLUME_DIR=/var/tmp/.dotfiles_docker-volume"
 
 @REM Docker configurations
 set "DOCKER_CLI_HINTS=false"
 
-echo Cleaning up running containers created from '%IMAGE%'...
-for /f "tokens=*" %%i in ('docker ps -aq --filter "ancestor=%IMAGE%" -q') do (
-  docker rm -f %%i
+if "%FLAG%"=="--cleanup" (
+  echo Cleaning up running containers created from '%IMAGE%'...
+  for /f "tokens=*" %%i in ('docker ps -aq --filter "ancestor=%IMAGE%" -q') do (
+    docker rm -f %%i
+  )
+  echo.
 )
 
 if "%FLAG%"=="--build" (
@@ -30,11 +33,12 @@ if "%FLAG%"=="--build" (
   )
   echo Cleaning up build history...
   docker buildx history rm --all
+  echo.
 )
 
-echo.
 docker run ^
 --rm ^
---mount type=bind,source="%REPO_DIR%",target="%DOTFILES_DEV_DATA%",readonly ^
+--mount type=bind,source="%REPO_DIR%",target="%DOTFILES_VOLUME_DIR%",readonly ^
 --env INSTALL_SCRIPT_PARAMS="%INSTALL_SCRIPT_PARAMS%" ^
+--env DOTFILES_VOLUME_DIR="%DOTFILES_VOLUME_DIR%" ^
 --name "%CONTAINER_NAME%" "%IMAGE%"

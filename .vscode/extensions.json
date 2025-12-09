@@ -64,5 +64,7 @@
     "yinfei.luahelper",
     "yzhang.markdown-all-in-one",
     "be5invis.vscode-custom-css",
+    "gruntfuggly.todo-tree",
+    "wwnao.bat-formatter",
   ]
 }
