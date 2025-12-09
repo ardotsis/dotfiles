@@ -485,7 +485,7 @@ do_setup_vultr() {
 	set_template "$HOME_SSH_DIR"
 	set_template "$HOME_SSH_DIR/authorized_keys"
 
-	log_info "Resetting openssh config directory..."
+	log_info "Creating OpenSSH "
 	local sshd_config_tmpl="${DOTFILES_REPO["template"]}}/openssh-server/sshd_config"
 	set_template "${OPENSSH_SERVER["etc"]}"
 	set_template "${OPENSSH_SERVER["sshd_config"]}" "$sshd_config_tmpl"

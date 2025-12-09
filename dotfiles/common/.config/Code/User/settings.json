@@ -102,11 +102,11 @@
   "window.menuBarVisibility": "compact",
   "workbench.activityBar.location": "default",
   "workbench.colorCustomizations": {
-    "editor.inactiveSelectionBackground": "#f7e9f220", // 恋白のかすかな残り香
-    "editor.selectionBackground": "#ffabdfa8", // 恋白のメイン選択色（少し濃い）
-    "editor.selectionForeground": "#3a2a2a", // 恋白の上でも読める落ち着いた文字色
-    "editor.selectionHighlightBackground": "#f7e9f250", // 恋白の気配レベルの薄い強調
-    "editor.selectionHighlightBorder": "#ff89c0" // 薄い恋白の輪郭
+    "editor.inactiveSelectionBackground": "#f7e9f220",
+    "editor.selectionBackground": "#ff80ced5",
+    "editor.selectionForeground": "#ffffff",
+    "editor.selectionHighlightBackground": "#f7e9f250",
+    "editor.selectionHighlightBorder": "#ff89c0"
   },
   "workbench.colorTheme": "Gruvbox in Black Bordered",
   "workbench.iconTheme": "material-icon-theme",
