@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e -u -o pipefail -C
 
-# Set your kawaii name!! hehehe~~
 declare -r DEFAULT_USERNAME="ardotsis"
 
 declare -ar _PARAM_0=("--host" "-h" "value" "")
@@ -94,15 +93,15 @@ declare -r OS="${HOST_OS["$HOST"]}"
 declare -r HOST_PREFIX="${HOST^^}_"
 declare -r HOME_DIR="/home/$INSTALL_USER"
 declare -r HOME_SSH_DIR="$HOME_DIR/.ssh"
-declare -r DOTFILES_DIRNAME=".dotfiles"
-declare -r DOTFILES_REPO_DIR="$HOME_DIR/$DOTFILES_DIRNAME"
-declare -r DOTFILES_SECRET="$HOME_DIR/dotfiles_secret"
-declare -r DOCKER_VOL_DIR="/var/tmp/$DOTFILES_DIRNAME"
-declare -r DOTFILES_TMP_INSTALLER_FILE="/var/tmp/install_dotfiles.sh"
+declare -r REPO_DIRNAME=".dotfiles"
+declare -r REPO_DIR="$HOME_DIR/$REPO_DIRNAME"
+declare -r SECRET_FILE="$HOME_DIR/SECRET_FILE"
+declare -r DOCKER_VOL_DIR="/var/tmp/$REPO_DIRNAME"
+declare -r TMP_INSTALL_SCRIPT_FILE="/var/tmp/install_dotfiles.sh"
 declare -r GIT_REMOTE_BRANCH="main"
 
 declare -A DOTFILES_REPO
-DOTFILES_REPO["src"]="$DOTFILES_REPO_DIR/dotfiles"
+DOTFILES_REPO["src"]="$REPO_DIR/dotfiles"
 DOTFILES_REPO["common"]="${DOTFILES_REPO["src"]}/common"
 DOTFILES_REPO["host"]="${DOTFILES_REPO["src"]}/hosts/$HOST"
 DOTFILES_REPO["packages"]="${DOTFILES_REPO["src"]}/packages.txt"
@@ -312,9 +311,9 @@ clone_dotfiles_repo() {
 	fi
 
 	if [[ "$IS_LOCAL" == "true" ]]; then
-		ln -s "$DOCKER_VOL_DIR" "$DOTFILES_REPO_DIR"
+		ln -s "$DOCKER_VOL_DIR" "$REPO_DIR"
 	else
-		git clone -b "$GIT_REMOTE_BRANCH" "${URL["dotfiles_repo"]}" "$DOTFILES_REPO_DIR"
+		git clone -b "$GIT_REMOTE_BRANCH" "${URL["dotfiles_repo"]}" "$REPO_DIR"
 	fi
 }
 
@@ -488,7 +487,7 @@ do_setup_vultr() {
 	# Generate port number
 	local ssh_port="$((1024 + RANDOM % (65535 - 1024 + 1)))"
 	sudo sed -i "s/^Port [0-9]\+/Port $ssh_port/" "$sshd_config"
-	printf "SSH port: %s\n" "$ssh_port" >>"$DOTFILES_SECRET"
+	printf "SSH port: %s\n" "$ssh_port" >>"$SECRET_FILE"
 
 	log_info "Resetting home ssh directory..."
 	set_template "$HOME_SSH_DIR"
@@ -532,11 +531,11 @@ main() {
 
 		add_user "$INSTALL_USER" "$passwd"
 
-		log_info "Create secret file on $DOTFILES_SECRET"
-		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"$DOTFILES_SECRET"
-		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"$DOTFILES_SECRET"
-		chown "$INSTALL_USER:$INSTALL_USER" "$DOTFILES_SECRET"
-		chmod 600 "$DOTFILES_SECRET"
+		log_info "Create secret file on $SECRET_FILE"
+		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"$SECRET_FILE"
+		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"$SECRET_FILE"
+		chown "$INSTALL_USER:$INSTALL_USER" "$SECRET_FILE"
+		chmod 600 "$SECRET_FILE"
 
 		local run_cmd
 		get_script_run_cmd "$(get_script_path)" "true" "run_cmd"
@@ -552,14 +551,14 @@ if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
 	if [[ "$IS_LOCAL" == "true" ]]; then
 		dev_install_file="$DOCKER_VOL_DIR/install.sh"
 		log_info "Copying script from ${COLOR["yellow"]}$dev_install_file${COLOR["reset"]}..."
-		cp "$dev_install_file" "$DOTFILES_TMP_INSTALLER_FILE"
+		cp "$dev_install_file" "$TMP_INSTALL_SCRIPT_FILE"
 	else
 		log_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository..."
-		curl -fsSL "${URL["dotfiles_installer"]}" -o "$DOTFILES_TMP_INSTALLER_FILE"
+		curl -fsSL "${URL["dotfiles_installer"]}" -o "$TMP_INSTALL_SCRIPT_FILE"
 	fi
-	chmod +x "$DOTFILES_TMP_INSTALLER_FILE"
+	chmod +x "$TMP_INSTALL_SCRIPT_FILE"
 
-	get_script_run_cmd "$DOTFILES_TMP_INSTALLER_FILE" "false" "run_cmd"
+	get_script_run_cmd "$TMP_INSTALL_SCRIPT_FILE" "false" "run_cmd"
 	printf "Restarting...\n\n"
 	"${run_cmd[@]}"
 else
