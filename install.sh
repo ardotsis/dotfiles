@@ -85,7 +85,6 @@ declare -r IS_LOCAL=$(get_arg "local")
 declare -r IS_DOCKER=$(get_arg "docker")
 # shellcheck disable=SC2155
 declare -r IS_INITIALIZED=$(get_arg "initialized")
-
 declare -Ar HOST_OS=(
 	["vultr"]="debian"
 	["arch"]="arch"
@@ -93,50 +92,44 @@ declare -Ar HOST_OS=(
 )
 declare -r OS="${HOST_OS["$HOST"]}"
 declare -r HOST_PREFIX="${HOST^^}_"
+declare -r HOME_DIR="/home/$INSTALL_USER"
+declare -r HOME_SSH_DIR="$HOME_DIR/.ssh"
+declare -r DOTFILES_DIRNAME=".dotfiles"
+declare -r DOTFILES_REPO_DIR="$HOME_DIR/$DOTFILES_DIRNAME"
+declare -r DOTFILES_SECRET="$HOME_DIR/dotfiles_secret"
+declare -r DOCKER_VOL_DIR="/var/tmp/$DOTFILES_DIRNAME"
+declare -r DOTFILES_TMP_INSTALLER_FILE="/var/tmp/install_dotfiles.sh"
+declare -r GIT_REMOTE_BRANCH="main"
 
-declare -A DOTFILES_CONF
-DOTFILES_CONF["git_upstream"]="main"
-DOTFILES_CONF["dirname"]=".dotfiles"
-DOTFILES_CONF["docker_vol_dir"]="/var/tmp/${DOTFILES_CONF["dirname"]}"
-DOTFILES_CONF["tmp_installer_file"]="/var/tmp/install_dotfiles.sh"
-declare -r DOTFILES_CONF
+declare -A DOTFILES_REPO
+DOTFILES_REPO["src"]="$DOTFILES_REPO_DIR/dotfiles"
+DOTFILES_REPO["common"]="${DOTFILES_REPO["src"]}/common"
+DOTFILES_REPO["host"]="${DOTFILES_REPO["src"]}/hosts/$HOST"
+DOTFILES_REPO["packages"]="${DOTFILES_REPO["src"]}/packages.txt"
+declare -r DOTFILES_REPO
 
-declare -A USER_PATH
-USER_PATH["home"]="/home/$INSTALL_USER"
-USER_PATH["ssh"]="${USER_PATH["home"]}/.ssh"
-USER_PATH["dotfiles_repo"]="${USER_PATH["home"]}/${DOTFILES_CONF["dirname"]}"
-USER_PATH["dotfiles_secret"]="${USER_PATH["home"]}/dotfiles_secret"
-declare -r USER_PATH
+declare -A OPENSSH_SERVER
+OPENSSH_SERVER["etc"]="/etc/ssh"
+OPENSSH_SERVER["sshd_config"]="${OPENSSH_SERVER["etc"]}/sshd_config"
+declare -r OPENSSH_SERVER
 
-declare -A DOTFILES_REPO_PATH
-DOTFILES_REPO_PATH["src"]="${USER_PATH["dotfiles_repo"]}/dotfiles"
-DOTFILES_REPO_PATH["common"]="${DOTFILES_REPO_PATH["src"]}/common"
-DOTFILES_REPO_PATH["host"]="${DOTFILES_REPO_PATH["src"]}/hosts/$HOST"
-DOTFILES_REPO_PATH["packages"]="${DOTFILES_REPO_PATH["src"]}/packages.txt"
-declare -r DOTFILES_REPO_PATH
-
-declare -A OPENSSH_SERVER_PATH
-OPENSSH_SERVER_PATH["etc"]="/etc/ssh"
-OPENSSH_SERVER_PATH["sshd_config"]="${OPENSSH_SERVER_PATH["etc"]}/sshd_config"
-declare -r OPENSSH_SERVER_PATH
-
-declare -A IPTABLES_PATH
-IPTABLES_PATH["etc"]="/etc/iptables"
-IPTABLES_PATH["rules_v4"]="${IPTABLES_PATH["etc"]}/rules.v4"
-IPTABLES_PATH["rules_v6"]="${IPTABLES_PATH["etc"]}/rules.v6"
-declare -r IPTABLES_PATH
+declare -A IPTABLES
+IPTABLES["etc"]="/etc/iptables"
+IPTABLES["rules_v4"]="${IPTABLES["etc"]}/rules.v4"
+IPTABLES["rules_v6"]="${IPTABLES["etc"]}/rules.v6"
+declare -r IPTABLES
 
 declare -Ar PERMISSION=(
-	# System
-	["${USER_PATH["ssh"]}"]="d $INSTALL_USER $INSTALL_USER 0700"
-	["${USER_PATH["ssh"]}/authorized_keys"]="d $INSTALL_USER $INSTALL_USER 0600"
+	# Home
+	["$HOME_SSH_DIR"]="d $INSTALL_USER $INSTALL_USER 0700"
+	["$HOME_SSH_DIR/authorized_keys"]="d $INSTALL_USER $INSTALL_USER 0600"
 	# openssh-server
-	["${OPENSSH_SERVER_PATH["etc"]}"]="d root root 0755"
-	["${OPENSSH_SERVER_PATH["sshd_config"]}"]="f root root 0600"
+	["${OPENSSH_SERVER["etc"]}"]="d root root 0755"
+	["${OPENSSH_SERVER["sshd_config"]}"]="f root root 0600"
 	# iptables
-	["${IPTABLES_PATH["etc"]}"]="d root root 0700"
-	["${IPTABLES_PATH["rules_v4"]}"]="f root root 0600"
-	["${IPTABLES_PATH["rules_v6"]}"]="f root root 0600"
+	["${IPTABLES["etc"]}"]="d root root 0700"
+	["${IPTABLES["rules_v4"]}"]="f root root 0600"
+	["${IPTABLES["rules_v6"]}"]="f root root 0600"
 )
 
 declare -Ar URL=(
@@ -319,9 +312,9 @@ clone_dotfiles_repo() {
 	fi
 
 	if [[ "$IS_LOCAL" == "true" ]]; then
-		ln -s "${DOTFILES_CONF["docker_vol_dir"]}" "${USER_PATH["dotfiles_repo"]}"
+		ln -s "$DOCKER_VOL_DIR" "$DOTFILES_REPO_DIR"
 	else
-		git clone -b "${DOTFILES_CONF["git_upstream"]}" "${URL["dotfiles_repo"]}" "${USER_PATH["dotfiles_repo"]}"
+		git clone -b "$GIT_REMOTE_BRANCH" "${URL["dotfiles_repo"]}" "$DOTFILES_REPO_DIR"
 	fi
 }
 
@@ -330,7 +323,7 @@ install_listed_packages() {
 		if ! is_cmd_exist "$pkg"; then
 			install_package "$pkg"
 		fi
-	done <"${DOTFILES_REPO_PATH["packages"]}"
+	done <"${DOTFILES_REPO["packages"]}"
 }
 
 convert_home_path() {
@@ -338,9 +331,9 @@ convert_home_path() {
 	local to="$2"
 
 	# shellcheck disable=SC2034
-	local home="${USER_PATH["home"]}"
-	local common="${DOTFILES_REPO_PATH["common"]}"
-	local host="${DOTFILES_REPO_PATH["host"]}"
+	local home="$HOME_DIR"
+	local common="${DOTFILES_REPO["common"]}"
+	local host="${DOTFILES_REPO["host"]}"
 
 	local from
 	for home_type in "home" "common" "host"; do
@@ -354,7 +347,7 @@ convert_home_path() {
 }
 
 do_link() {
-	local a_home_dir="${1-${USER_PATH["home"]}}"
+	local a_home_dir="${1-$HOME_DIR}"
 	local dir_type="${2:-}"
 	local prefix_base="${3:-}"
 
@@ -485,21 +478,21 @@ do_setup_vultr() {
 		remove_package "ufw"
 	fi
 
-	local template_dir="${DOTFILES_REPO_PATH["src"]}/template"
+	local template_dir="${DOTFILES_REPO["src"]}/template"
 
 	log_info "Resetting openssh config directory..."
 	local sshd_config_tmpl="${template_dir}/openssh-server/sshd_config"
-	set_template "${OPENSSH_SERVER_PATH["etc"]}"
-	set_template "${OPENSSH_SERVER_PATH["etc"]}" "$sshd_config_tmpl"
+	set_template "${OPENSSH_SERVER["etc"]}"
+	set_template "${OPENSSH_SERVER["etc"]}" "$sshd_config_tmpl"
 
 	# Generate port number
 	local ssh_port="$((1024 + RANDOM % (65535 - 1024 + 1)))"
 	sudo sed -i "s/^Port [0-9]\+/Port $ssh_port/" "$sshd_config"
-	printf "SSH port: %s\n" "$ssh_port" >>"${USER_PATH["dotfiles_secret"]}"
+	printf "SSH port: %s\n" "$ssh_port" >>"$DOTFILES_SECRET"
 
 	log_info "Resetting home ssh directory..."
-	set_template "${USER_PATH["ssh"]}"
-	set_template "${USER_PATH["ssh"]}/authorized_keys"
+	set_template "$HOME_SSH_DIR"
+	set_template "$HOME_SSH_DIR/authorized_keys"
 
 	log_info "Resetting iptables directory..."
 	# $SUDO install -d -m 0755 "$iptables_dir"
@@ -525,8 +518,8 @@ main() {
 	log_info "Start installation script as ${COLOR["yellow"]}$(whoami)${COLOR["reset"]}..."
 
 	if [[ "$IS_INITIALIZED" == "true" ]]; then
-		log_debug "Change current directory to ${USER_PATH["home"]}"
-		cd "${USER_PATH["home"]}"
+		log_debug "Change current directory to $HOME_DIR"
+		cd "$HOME_DIR"
 		"do_setup_${HOST}"
 	else
 		if [[ -n "$SUDO" ]]; then
@@ -539,11 +532,11 @@ main() {
 
 		add_user "$INSTALL_USER" "$passwd"
 
-		log_info "Create secret file on ${USER_PATH["dotfiles_secret"]}"
-		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"${USER_PATH["dotfiles_secret"]}"
-		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"${USER_PATH["dotfiles_secret"]}"
-		chown "$INSTALL_USER:$INSTALL_USER" "${USER_PATH["dotfiles_secret"]}"
-		chmod 600 "${USER_PATH["dotfiles_secret"]}"
+		log_info "Create secret file on $DOTFILES_SECRET"
+		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"$DOTFILES_SECRET"
+		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"$DOTFILES_SECRET"
+		chown "$INSTALL_USER:$INSTALL_USER" "$DOTFILES_SECRET"
+		chmod 600 "$DOTFILES_SECRET"
 
 		local run_cmd
 		get_script_run_cmd "$(get_script_path)" "true" "run_cmd"
@@ -557,16 +550,16 @@ main() {
 if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
 	# Download script
 	if [[ "$IS_LOCAL" == "true" ]]; then
-		dev_install_file="${DOTFILES_CONF["docker_vol_dir"]}/install.sh"
+		dev_install_file="$DOCKER_VOL_DIR/install.sh"
 		log_info "Copying script from ${COLOR["yellow"]}$dev_install_file${COLOR["reset"]}..."
-		cp "$dev_install_file" "${DOTFILES_CONF["tmp_installer_file"]}"
+		cp "$dev_install_file" "$DOTFILES_TMP_INSTALLER_FILE"
 	else
 		log_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository..."
-		curl -fsSL "${URL["dotfiles_installer"]}" -o "${DOTFILES_CONF["tmp_installer_file"]}"
+		curl -fsSL "${URL["dotfiles_installer"]}" -o "$DOTFILES_TMP_INSTALLER_FILE"
 	fi
-	chmod +x "${DOTFILES_CONF["tmp_installer_file"]}"
+	chmod +x "$DOTFILES_TMP_INSTALLER_FILE"
 
-	get_script_run_cmd "${DOTFILES_CONF["tmp_installer_file"]}" "false" "run_cmd"
+	get_script_run_cmd "$DOTFILES_TMP_INSTALLER_FILE" "false" "run_cmd"
 	printf "Restarting...\n\n"
 	"${run_cmd[@]}"
 else

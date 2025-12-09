@@ -40,6 +40,8 @@
   "cSpell.words": [
     "ar.sis",
     "ardotsis",
+    "kanon",
+    "Kanon",
     "menhera",
     "menhera.art",
     "kawaii",
@@ -52,6 +54,7 @@
   "editor.formatOnType": true,
   // editor.lightbulb.enabled: https://github.com/microsoft/vscode-copilot-release/issues/735#issuecomment-1886589021
   "editor.lightbulb.enabled": "off",
+  "editor.linkedEditing": true,
   "editor.minimap.enabled": false,
   "editor.minimap.size": "fit",
   "explorer.confirmDelete": false,
@@ -98,7 +101,7 @@
   "window.commandCenter": false,
   "window.menuBarVisibility": "compact",
   "workbench.activityBar.location": "default",
-  "workbench.colorTheme": "Best Themes - Gruvbox Material Dark",
+  "workbench.colorTheme": "Gruvbox in Black Bordered",
   "workbench.iconTheme": "material-icon-theme",
   "workbench.layoutControl.enabled": false,
   "workbench.statusBar.visible": false

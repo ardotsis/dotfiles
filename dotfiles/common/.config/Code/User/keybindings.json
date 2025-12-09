@@ -9,12 +9,12 @@
   },
   {
     "command": "workbench.action.focusActiveEditorGroup",
-    "key": "ctrl+`",
+    "key": "ctrl+j",
     "when": "terminalFocus"
   },
   {
     "command": "workbench.action.terminal.focus",
-    "key": "ctrl+`",
+    "key": "ctrl+j",
     "when": "editorFocus"
   },
   {
@@ -35,5 +35,39 @@
   {
     "command": "-workbench.action.focusSideBar",
     "key": "ctrl+0"
+  },
+  {
+    "command": "-vscode-neovim.send-cmdline",
+    "key": "ctrl+h",
+    "when": "neovim.init && neovim.mode == 'cmdline'"
+  },
+  {
+    "command": "-vscode-neovim.send",
+    "key": "ctrl+h",
+    "when": "editorTextFocus && neovim.ctrlKeysNormal.h && neovim.init && neovim.mode != 'insert' && editorLangId not in 'neovim.editorLangIdExclusions'"
+  },
+  {
+    "command": "-vscode-neovim.send",
+    "key": "ctrl+h",
+    "when": "editorTextFocus && neovim.ctrlKeysInsert.h && neovim.init && neovim.mode == 'insert' && editorLangId not in 'neovim.editorLangIdExclusions'"
+  },
+  {
+    "command": "-vscode-neovim.send",
+    "key": "ctrl+j",
+    "when": "editorTextFocus && neovim.ctrlKeysInsert.j && neovim.init && neovim.mode == 'insert' && editorLangId not in 'neovim.editorLangIdExclusions'"
+  },
+  {
+    "command": "-vscode-neovim.send",
+    "key": "ctrl+j",
+    "when": "editorTextFocus && neovim.ctrlKeysNormal.j && neovim.init && neovim.mode != 'insert' && editorLangId not in 'neovim.editorLangIdExclusions'"
+  },
+  {
+    "command": "-vscode-neovim.send-cmdline",
+    "key": "ctrl+j",
+    "when": "neovim.init && neovim.mode == 'cmdline'"
+  },
+  {
+    "command": "-workbench.action.togglePanel",
+    "key": "ctrl+j"
   }
 ]
