@@ -1,6 +1,6 @@
 # ar.sis's dotfiles
 
-hey, ar.sis, it's ok! your home is here.
+hey, ar.sis, it's ok! your isolated home is here.
 
 _simple / minimal / pixel perfect / suckless / secure / free / reproducible / efficient / unique / kawaii / menhera_
 

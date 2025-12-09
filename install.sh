@@ -94,19 +94,21 @@ declare -r HOST_PREFIX="${HOST^^}_"
 declare -r HOME_DIR="/home/$INSTALL_USER"
 declare -r HOME_SSH_DIR="$HOME_DIR/.ssh"
 declare -r _TMP_DIR="/var/tmp"
-
 declare -r GIT_REMOTE_BRANCH="main"
 declare -r REPO_DIRNAME=".dotfiles"
 declare -r REPO_DIR="$HOME_DIR/$REPO_DIRNAME"
 declare -r SECRET_FILE="$HOME_DIR/SECRET_FILE"
 declare -r DOCKER_VOL_DIR="$_TMP_DIR/$REPO_DIRNAME"
 declare -r TMP_INSTALL_SCRIPT_FILE="$_TMP_DIR/install_dotfiles.sh"
+# declare -ar SYMLINK_EXCLUDES=("")
+# TODO: .dotfilesignore (use regex in txt file -> template/*)
 
 declare -A DOTFILES_REPO
 DOTFILES_REPO["src"]="$REPO_DIR/dotfiles"
 DOTFILES_REPO["common"]="${DOTFILES_REPO["src"]}/common"
 DOTFILES_REPO["host"]="${DOTFILES_REPO["src"]}/hosts/$HOST"
 DOTFILES_REPO["packages"]="${DOTFILES_REPO["src"]}/packages.txt"
+DOTFILES_REPO["template"]="${DOTFILES_REPO["host"]}/template"
 declare -r DOTFILES_REPO
 
 declare -A OPENSSH_SERVER
@@ -479,21 +481,19 @@ do_setup_vultr() {
 		remove_package "ufw"
 	fi
 
-	local template_dir="${DOTFILES_REPO["src"]}/template"
+	log_info "Creating home SSH directory.."
+	set_template "$HOME_SSH_DIR"
+	set_template "$HOME_SSH_DIR/authorized_keys"
 
 	log_info "Resetting openssh config directory..."
-	local sshd_config_tmpl="${template_dir}/openssh-server/sshd_config"
+	local sshd_config_tmpl="${DOTFILES_REPO["template"]}}/openssh-server/sshd_config"
 	set_template "${OPENSSH_SERVER["etc"]}"
-	set_template "${OPENSSH_SERVER["etc"]}" "$sshd_config_tmpl"
+	set_template "${OPENSSH_SERVER["sshd_config"]}" "$sshd_config_tmpl"
 
 	# Generate port number
 	local ssh_port="$((1024 + RANDOM % (65535 - 1024 + 1)))"
 	sudo sed -i "s/^Port [0-9]\+/Port $ssh_port/" "$sshd_config"
 	printf "SSH port: %s\n" "$ssh_port" >>"$SECRET_FILE"
-
-	log_info "Resetting home ssh directory..."
-	set_template "$HOME_SSH_DIR"
-	set_template "$HOME_SSH_DIR/authorized_keys"
 
 	log_info "Resetting iptables directory..."
 	# $SUDO install -d -m 0755 "$iptables_dir"
