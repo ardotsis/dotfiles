@@ -120,5 +120,6 @@
   "workbench.editor.enablePreview": false,
   "workbench.iconTheme": "material-icon-theme",
   "workbench.layoutControl.enabled": false,
+  "workbench.startupEditor": "none",
   "workbench.statusBar.visible": false
 }
