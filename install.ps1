@@ -4,8 +4,8 @@ $ErrorActionPreference = "Stop"
 $DotfilesRepoDir = $PSScriptRoot
 
 $SymlinkDirPairs = @(
-    # FORMA  : [Windows directory],  [Dotfiles directory]
     # CAUTION: DO NOT FORGET A COMMA FOR EACH ARRAY.
+    # FORMAT : [Windows directory],  [Dotfiles directory]
 
     # VSCode
     @("${Env:APPDATA}\Code\User", "$DotfilesRepoDir\dotfiles\common\.config\Code\User"),
