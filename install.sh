@@ -180,7 +180,7 @@ _log() {
 	local level="$1"
 	local msg="$2"
 
-	local caller="GLOBAL"
+	local caller="<Global>"
 	for funcname in "${FUNCNAME[@]}"; do
 		[[ "$funcname" == "_log" ]] && continue
 		[[ "$funcname" == "log_"* ]] && continue
@@ -304,7 +304,9 @@ set_template() {
 	fi
 
 	if [[ -n "$file_url" ]]; then
-		install_cmd=("curl" "-fsSL" "$file_url" "|" "${install_cmd[@]}")
+		curl_cmd=("curl" "-fsSL" "$file_url")
+		install_cmd=("${install_cmd[@]}" "$item_path")
+		"${curl_cmd[@]}" | "${install_cmd[@]}"
 	else
 		if [[ "$type" == "f" ]]; then
 			if [[ -n "$template_path" ]]; then
@@ -315,12 +317,10 @@ set_template() {
 		elif [[ "$type" == "d" ]]; then
 			install_cmd=("${install_cmd[@]}" "$item_path" "-d")
 		fi
+		"${install_cmd[@]}"
 	fi
 
 	log_info "Create '$item_path' ($user:$group $num)"
-
-	declare -p "install_cmd"
-	"${install_cmd[@]}"
 }
 
 ##################################################
@@ -567,11 +567,10 @@ if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
 	if [[ "$IS_LOCAL" == "true" ]]; then
 		dev_install_file="$DOCKER_VOL_DIR/install.sh"
 		log_info "Copying script from ${COLOR["yellow"]}$dev_install_file${COLOR["reset"]}..."
-		cp "$dev_install_file" "$TMP_INSTALL_SCRIPT_FILE"
+		set_template "$TMP_INSTALL_SCRIPT_FILE" "$dev_install_file"
 	else
 		log_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository..."
-		# curl -fsSL "${URL["dotfiles_installer"]}" -o "$TMP_INSTALL_SCRIPT_FILE"
-		set_template "$TMP_INSTALL_SCRIPT_FILE" "" "${URL}"
+		set_template "$TMP_INSTALL_SCRIPT_FILE" "" "${URL["dotfiles_repo"]}"
 	fi
 
 	get_script_run_cmd "$TMP_INSTALL_SCRIPT_FILE" "false" "run_cmd"

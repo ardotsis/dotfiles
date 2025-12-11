@@ -26,6 +26,9 @@
   "[markdown]": {
     "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
   },
+  "[powershell]": {
+    "files.autoSave": "afterDelay"
+  },
   "[shellscript]": {
     "editor.defaultFormatter": "mkhl.shfmt"
   },
@@ -34,14 +37,13 @@
   },
   "chat.commandCenter.enabled": false,
   "code-runner.executorMap": {
-    "shellscript": "  & \"C:\\Program Files\\Git\\bin\\bash.exe\""
+    ".ps1": "powershell -ExecutionPolicy ByPass -File \"$fileName\""
   },
   "code-runner.runInTerminal": true,
   "cSpell.words": [
     "ar.sis",
     "ardotsis",
-    "kanon",
-    "Kanon",
+    "dotkana",
     "menhera",
     "menhera.art",
     "kawaii",
@@ -90,7 +92,6 @@
   "terminal.integrated.fontFamily": "'Hack Nerd Font', Consolas, 'Courier New', monospace",
   "terminal.integrated.fontSize": 12,
   "terminal.integrated.stickyScroll.enabled": false,
-  "terminal.integrated.tabs.enabled": false,
   "vscode-neovim.compositeKeys": {
     "jj": {
       "command": "vscode-neovim.escape"
@@ -100,6 +101,7 @@
   "vscode-neovim.neovimInitVimPaths.win32": "C:\\Users\\owner\\AppData\\Local\\nvim\\init_vscode.lua",
   "window.commandCenter": false,
   "window.menuBarVisibility": "compact",
+  "window.restoreFullscreen": true,
   "workbench.activityBar.location": "default",
   "workbench.colorCustomizations": {
     "editor.inactiveSelectionBackground": "#f7e9f220",
@@ -109,6 +111,7 @@
     "editor.selectionHighlightBorder": "#ff89c081"
   },
   "workbench.colorTheme": "Gruvbox in Black Bordered",
+  "workbench.editor.enablePreview": false,
   "workbench.iconTheme": "material-icon-theme",
   "workbench.layoutControl.enabled": false,
   "workbench.statusBar.visible": false
