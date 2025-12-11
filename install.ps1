@@ -14,7 +14,6 @@ $SymlinkDirPairs = @(
     # NeoVim
     @("${Env:LOCALAPPDATA}\nvim", "$DotfilesRepoDir\dotfiles\common\.config\nvim")
 )
-
 function Set-Symlink([string] $WinDir, [string] $RepoDir) {
     if (-not (Test-Path -Path $WinDir)) {
         New-Item -Path $winDir -ItemType Directory

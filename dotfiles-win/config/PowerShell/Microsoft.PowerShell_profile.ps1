@@ -1,3 +1,4 @@
+# TODO: Refactor, Support Cmdlet
 function yt-all {
     param ([string] $url)
     yt-dlp.exe --yes-playlist --output '.\%(upload_date)s %(title)s [%(id)s]' --format 'bestvideo+bestaudio' --write-thumbnail $url --cookies-from-browser firefox
