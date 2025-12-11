@@ -144,7 +144,7 @@ declare -Ar URL=(
 	["dotfiles_install_script"]="https://raw.githubusercontent.com/ardotsis/dotfiles/refs/heads/main/install.sh"
 )
 
-declare -Ar COLOR=(
+declare -Ar CLR=(
 	["reset"]="\033[0m"
 	["black"]="\033[0;30m"
 	["red"]="\033[0;31m"
@@ -156,13 +156,13 @@ declare -Ar COLOR=(
 	["white"]="\033[0;37m"
 )
 
-declare -Ar LOG_COLOR=(
-	["debug"]="${COLOR["white"]}"
-	["info"]="${COLOR["green"]}"
-	["warn"]="${COLOR["yellow"]}"
-	["error"]="${COLOR["red"]}"
-	["var"]="${COLOR["purple"]}"
-	["value"]="${COLOR["cyan"]}"
+declare -Ar LOG_CLR=(
+	["debug"]="${CLR["white"]}"
+	["info"]="${CLR["green"]}"
+	["warn"]="${CLR["yellow"]}"
+	["error"]="${CLR["red"]}"
+	["var"]="${CLR["purple"]}"
+	["value"]="${CLR["cyan"]}"
 )
 
 if [[ "$(id -u)" == "0" ]]; then
@@ -191,7 +191,7 @@ _log() {
 
 	local timestamp
 	timestamp="$(date "+%Y-%m-%d %H:%M:%S")"
-	printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_COLOR["${level}"]}" "${level^^}" "${COLOR["reset"]}" "$caller" "$msg" >&2
+	printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_CLR["${level}"]}" "${level^^}" "${CLR["reset"]}" "$caller" "$msg" >&2
 }
 log_debug() { _log "debug" "$1"; }
 log_info() { _log "info" "$1"; }
@@ -202,7 +202,7 @@ log_vars() {
 
 	local msg=""
 	for var_name in "${var_names[@]}"; do
-		fmt="${LOG_COLOR["var"]}\$$var_name${COLOR["reset"]}='${LOG_COLOR["value"]}${!var_name}${COLOR["reset"]}'"
+		fmt="${LOG_CLR["var"]}\$$var_name${CLR["reset"]}='${LOG_CLR["value"]}${!var_name}${CLR["reset"]}'"
 		if [[ -z "$msg" ]]; then
 			msg="$fmt"
 		else
@@ -550,7 +550,7 @@ _main() {
 			sudo -v
 		fi
 
-		log_info "Create ${COLOR["yellow"]}${INSTALL_USER}${COLOR["reset"]}"
+		log_info "Create ${CLR["yellow"]}${INSTALL_USER}${CLR["reset"]}"
 		local passwd
 		passwd="$(get_random_str 64)"
 
@@ -570,15 +570,14 @@ _main() {
 	fi
 }
 
-log_info "============== Begin ${COLOR["yellow"]}$CURRENT_USER${COLOR["reset"]} Session =============="
+log_info "============== Begin ${CLR["yellow"]}$CURRENT_USER${CLR["reset"]} Session =============="
 if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
-	# Download script
 	if [[ "$IS_LOCAL" == "true" ]]; then
 		dev_install_file="$DOCKER_VOL_DIR/install.sh"
-		log_info "Copying script from ${COLOR["yellow"]}$dev_install_file${COLOR["reset"]}..."
+		log_info "Copying script from ${CLR["yellow"]}$dev_install_file${CLR["reset"]}..."
 		set_template "$TMP_INSTALL_SCRIPT_FILE" "$dev_install_file"
 	else
-		log_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository..."
+		log_info "Downloading script from ${CLR["yellow"]}Git${CLR["reset"]} repository..."
 		set_template "$TMP_INSTALL_SCRIPT_FILE" "" "${URL["dotfiles_install_script"]}"
 	fi
 
