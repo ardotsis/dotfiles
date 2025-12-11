@@ -37,7 +37,7 @@
   },
   "chat.commandCenter.enabled": false,
   "code-runner.executorMap": {
-    ".ps1": "powershell -ExecutionPolicy ByPass -File \"$fileName\""
+    "powershell": "powershell -ExecutionPolicy ByPass -File \"$fileName\" -Confirm:$false -Debug -Verbose"
   },
   "code-runner.runInTerminal": true,
   "cSpell.words": [
@@ -117,5 +117,6 @@
   "workbench.editor.enablePreview": false,
   "workbench.iconTheme": "material-icon-theme",
   "workbench.layoutControl.enabled": false,
-  "workbench.statusBar.visible": false
+  "workbench.statusBar.visible": false,
+  "terminal.integrated.tabs.enabled": false
 }

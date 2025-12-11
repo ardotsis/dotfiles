@@ -1,10 +1,10 @@
+[CmdletBinding()]
+param()
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
-
 $DotfilesRepoDir = $PSScriptRoot
-
 $SymlinkDirPairs = @(
-    # CAUTION: DO NOT FORGET A COMMA FOR EACH ARRAY.
     # FORMAT : [Windows directory],  [Dotfiles directory]
 
     # VSCode
@@ -13,11 +13,16 @@ $SymlinkDirPairs = @(
     @("${Env:USERPROFILE}\Documents\PowerShell", "$DotfilesRepoDir\dotfiles-win\config\PowerShell"),
     # NeoVim
     @("${Env:LOCALAPPDATA}\nvim", "$DotfilesRepoDir\dotfiles\common\.config\nvim")
+
+    # CAUTION: Do NOT forget to add a "comma (,)" for each array.
 )
+
+
 function Set-Symlink([string] $WinDir, [string] $RepoDir) {
     if (-not (Test-Path -Path $WinDir)) {
         New-Item -Path $winDir -ItemType Directory
     }
+
     Get-ChildItem -Path $RepoDir | ForEach-Object {
         $winItem = Join-Path -Path $WinDir -ChildPath $_.Name
         $repoItem = $_.FullName
@@ -37,6 +42,7 @@ function Test-Administrator {
     $isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     return $isAdmin
 }
+
 function main() {
     if (-not (Test-Administrator)) {
         Write-Output "Not running as Administrator. Restarting..."
@@ -47,6 +53,11 @@ function main() {
 
     foreach ($dirPair in $SymlinkDirPairs) {
         $winDir, $repoDir = $dirPair
+
+        if (-not (Test-Path -Path $repoDir)) {
+            Write-Warning ""
+        }
+
         Set-Symlink -WinDir $winDir -RepoDir $repoDir
     }
 }

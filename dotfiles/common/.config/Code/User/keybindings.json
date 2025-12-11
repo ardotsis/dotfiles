@@ -69,9 +69,33 @@
     "command": "-workbench.action.togglePanel",
     "key": "ctrl+j"
   },
-  // {
-  //   "command": "code-runner.run",
-  //   "key": "ctrl+r",
-  //   "when": "editorTextFocus"
-  // },
+  {
+    "command": "code-runner.run",
+    "key": "ctrl+shift+r",
+    "when": "editorFocus"
+  },
+  {
+    "command": "-code-runner.run",
+    "key": "ctrl+alt+n"
+  },
+  {
+    "command": "workbench.action.terminal.toggleTerminal",
+    "key": "ctrl+shift+j",
+    "when": "editorFocus"
+  },
+  {
+    "command": "workbench.action.terminal.toggleTerminal",
+    "key": "ctrl+shift+j",
+    "when": "terminalFocus"
+  },
+  {
+    "command": "-workbench.action.focusFirstEditorGroup",
+    "key": "ctrl+1",
+    "when": "terminalFocus"
+  },
+  {
+    "command": "-workbench.action.focusFirstEditorGroup",
+    "key": "ctrl+1",
+    "when": "editorFocus"
+  }
 ]

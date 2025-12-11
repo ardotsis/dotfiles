@@ -297,6 +297,7 @@ set_template() {
 		$SUDO rm -rf "$item_path"
 	fi
 
+	local is_tmp_exist="false"
 	local install_cmd=("install" "-m" "$num" "-o" "$user" "-g" "$group")
 
 	if [[ -n "$SUDO" ]]; then
@@ -304,9 +305,10 @@ set_template() {
 	fi
 
 	if [[ -n "$file_url" ]]; then
-		curl_cmd=("curl" "-fsSL" "$file_url")
-		install_cmd=("${install_cmd[@]}" "$item_path")
-		"${curl_cmd[@]}" | "${install_cmd[@]}"
+		template_path="/var/tmp/$(get_random_str 16)"
+		install_cmd=("${install_cmd[@]}" "$template_path" "$item_path")
+		curl -fsSL "$file_url" >"$template_path"
+		is_tmp_exist="true"
 	else
 		if [[ "$type" == "f" ]]; then
 			if [[ -n "$template_path" ]]; then
@@ -317,7 +319,14 @@ set_template() {
 		elif [[ "$type" == "d" ]]; then
 			install_cmd=("${install_cmd[@]}" "$item_path" "-d")
 		fi
-		"${install_cmd[@]}"
+	fi
+
+	declare -p "install_cmd"
+	"${install_cmd[@]}"
+
+	if [[ $is_tmp_exist == "true" ]]; then
+		log_debug "Delete tmp file"
+		rm -rf "$template_path"
 	fi
 
 	log_info "Create '$item_path' ($user:$group $num)"
@@ -570,7 +579,7 @@ if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
 		set_template "$TMP_INSTALL_SCRIPT_FILE" "$dev_install_file"
 	else
 		log_info "Downloading script from ${COLOR["yellow"]}Git${COLOR["reset"]} repository..."
-		set_template "$TMP_INSTALL_SCRIPT_FILE" "" "${URL["dotfiles_repo"]}"
+		set_template "$TMP_INSTALL_SCRIPT_FILE" "" "${URL["dotfiles_install_script"]}"
 	fi
 
 	get_script_run_cmd "$TMP_INSTALL_SCRIPT_FILE" "false" "run_cmd"
