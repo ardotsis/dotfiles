@@ -1,7 +1,6 @@
 {
   "[css]": {
-    "editor.defaultFormatter": "stylelint.vscode-stylelint",
-    "files.autoSave": "afterDelay"
+    "editor.defaultFormatter": "stylelint.vscode-stylelint"
   },
   "[html]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -12,15 +11,9 @@
     "files.autoSave": "afterDelay"
   },
   "[json]": {
-    "editor.codeActionsOnSave": {
-      "source.sort.json": "always"
-    },
     "editor.defaultFormatter": "richie5um2.vscode-sort-json"
   },
   "[jsonc]": {
-    "editor.codeActionsOnSave": {
-      "source.sort.json": "always"
-    },
     "editor.defaultFormatter": "richie5um2.vscode-sort-json"
   },
   "[markdown]": {
@@ -49,6 +42,10 @@
     "kawaii",
     "suckless"
   ],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.stylelint": "always",
+    "source.sort.json": "never"
+  },
   "editor.fontFamily": "'Hack Nerd Font', Consolas, 'Courier New', monospace",
   "editor.fontSize": 13,
   "editor.formatOnPaste": true,

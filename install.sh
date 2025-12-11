@@ -8,10 +8,9 @@ declare -ar _PARAM_1=("--username" "-u" "value" "$DEFAULT_USERNAME")
 declare -ar _PARAM_2=("--initialized" "-i" "flag" "false")
 declare -ar _PARAM_3=("--local" "-l" "flag" "false")
 declare -ar _PARAM_4=("--docker" "-d" "flag" "false")
-
-_IS_ARGS_PARSED="false"
 declare -A _PARAMS=()
 declare -a _ARGS=("$@")
+declare _IS_ARGS_PARSED="false"
 
 _parse_args() {
 	show_missing_param_err() {
@@ -86,7 +85,6 @@ IS_INITIALIZED=$(get_arg "initialized")
 declare -r IS_INITIALIZED
 CURRENT_USER="$(whoami)"
 declare -r CURRENT_USER
-
 declare -Ar HOST_OS=(
 	["vultr"]="debian"
 	["arch"]="arch"
@@ -96,13 +94,13 @@ declare -r OS="${HOST_OS["$HOST"]}"
 declare -r HOST_PREFIX="${HOST^^}_"
 declare -r HOME_DIR="/home/$INSTALL_USER"
 declare -r HOME_SSH_DIR="$HOME_DIR/.ssh"
-declare -r _TMP_DIR="/var/tmp"
+declare -r TMP_DIR="/var/tmp"
 declare -r GIT_REMOTE_BRANCH="main"
 declare -r REPO_DIRNAME=".dotfiles"
 declare -r REPO_DIR="$HOME_DIR/$REPO_DIRNAME"
 declare -r SECRET_FILE="$HOME_DIR/SECRET_FILE"
-declare -r DOCKER_VOL_DIR="$_TMP_DIR/${REPO_DIRNAME}_docker-volume"
-declare -r TMP_INSTALL_SCRIPT_FILE="$_TMP_DIR/install_dotfiles.sh"
+declare -r DOCKER_VOL_DIR="$TMP_DIR/${REPO_DIRNAME}_docker-volume"
+declare -r TMP_INSTALL_SCRIPT_FILE="$TMP_DIR/install_dotfiles.sh"
 
 declare -A DOTFILES_REPO
 DOTFILES_REPO["src"]="$REPO_DIR/dotfiles"
@@ -121,6 +119,7 @@ declare -A IPTABLES
 IPTABLES["etc"]="/etc/iptables"
 IPTABLES["rules_v4"]="${IPTABLES["etc"]}/rules.v4"
 IPTABLES["rules_v6"]="${IPTABLES["etc"]}/rules.v6"
+IPTABLES["iptables-restore.service"]="${IPTABLES["etc"]}/iptables-restore.service"
 declare -r IPTABLES
 
 declare -Ar PERMISSION=(
@@ -129,7 +128,7 @@ declare -Ar PERMISSION=(
 	["$HOME_SSH_DIR/authorized_keys"]="f $INSTALL_USER $INSTALL_USER 0600"
 	# Script item
 	["$SECRET_FILE"]="f $INSTALL_USER $INSTALL_USER 0600"
-	["$TMP_INSTALL_SCRIPT_FILE"]="f $CURRENT_USER $CURRENT_USER 0700"
+	["$TMP_INSTALL_SCRIPT_FILE"]="f root root 0755"
 	# openssh-server
 	["${OPENSSH_SERVER["etc"]}"]="d root root 0755"
 	["${OPENSSH_SERVER["sshd_config"]}"]="f root root 0600"
@@ -181,10 +180,11 @@ _log() {
 	local level="$1"
 	local msg="$2"
 
-	local caller="<Global>"
+	local caller="_GLOBAL_"
 	for funcname in "${FUNCNAME[@]}"; do
 		[[ "$funcname" == "_log" ]] && continue
 		[[ "$funcname" == "log_"* ]] && continue
+		[[ "$funcname" == "main" ]] && continue
 		caller="$funcname"
 		break
 	done
@@ -306,7 +306,7 @@ set_template() {
 	fi
 
 	if [[ -n "$file_url" ]]; then
-		template_path="/var/tmp/$(get_random_str 16)"
+		template_path="$TMP_DIR/$(get_random_str 16)"
 		install_cmd=("${install_cmd[@]}" "$template_path" "$item_path")
 		curl -fsSL "$file_url" >"$template_path"
 		is_tmp_exist="true"
@@ -329,7 +329,6 @@ set_template() {
 		log_debug "Delete tmp file"
 		rm -rf "$template_path"
 	fi
-
 	log_info "Create '$item_path' ($user:$group $num)"
 }
 
@@ -520,9 +519,10 @@ do_setup_vultr() {
 	sudo sed -i "s/^Port [0-9]\+/Port $ssh_port/" "${OPENSSH_SERVER["sshd_config"]}"
 	printf "SSH port: %s\n" "$ssh_port" >>"$SECRET_FILE"
 
-	local tmpl_iptables="${DOTFILES_REPO["template"]}"
-	set_template "${IPTABLES["rules_v4"]}" "$tmpl_iptables/rules.v4}"
-	set_template "${IPTABLES["rules_v4"]}" "$tmpl_iptables/rules.v6}"
+	local tmpl_iptables="${DOTFILES_REPO["template"]}/iptables"
+	set_template "${IPTABLES["etc"]}"
+	set_template "${IPTABLES["rules_v4"]}" "$tmpl_iptables/rules.v4"
+	set_template "${IPTABLES["rules_v4"]}" "$tmpl_iptables/rules.v6"
 	set_template "${IPTABLES["iptables-restore.service"]}" "$tmpl_iptables/iptables-restore.service"
 
 	if [[ "$IS_DOCKER" == "false" ]]; then
@@ -539,9 +539,8 @@ do_setup_arch() {
 	log_warn "dotfiles for arch - Not implemented yet.\nExiting..."
 }
 
-main() {
-	log_info "Start installation script as ${COLOR["yellow"]}$CURRENT_USER${COLOR["reset"]}..."
-
+# "_main": To prevent the log function from logging it as _GLOBAL_
+_main() {
 	if [[ "$IS_INITIALIZED" == "true" ]]; then
 		log_debug "Change current directory to $HOME_DIR"
 		cd "$HOME_DIR"
@@ -571,6 +570,7 @@ main() {
 	fi
 }
 
+log_info "============== Begin ${COLOR["yellow"]}$CURRENT_USER${COLOR["reset"]} Session =============="
 if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
 	# Download script
 	if [[ "$IS_LOCAL" == "true" ]]; then
@@ -586,7 +586,7 @@ if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
 	printf "Restarting...\n\n"
 	"${run_cmd[@]}"
 else
-	main
+	_main
 	if [[ "$IS_DOCKER" == "true" ]]; then
 		log_debug "Docker mode is enabled. Keeping docker container running..."
 		tail -f /dev/null
