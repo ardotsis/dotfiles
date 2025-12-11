@@ -21,17 +21,17 @@ curl -fsSL dotfiles.ardotsis.com | bash -s -- -h vultr
 curl -fsSL dotfiles.ardotsis.com | bash -s -- -h arch
 ```
 
-### Windows
-
-```batch
-(Placeholder)
-```
-
-### Test on Docker (Windows)
+### Test `install.sh` on Docker (Windows)
 
 ```powershell
 .\scripts\test_debian.bat "--host vultr --username kana --local --docker" --build
 .\scripts\test_debian.bat "--host vultr --username kana --local --docker"
+```
+
+### Windows
+
+```batch
+(Placeholder)
 ```
 
 ## Shortcut Keys
