@@ -69,19 +69,9 @@
     "command": "-workbench.action.togglePanel",
     "key": "ctrl+j"
   },
-  {
-    "command": "code-runner.run",
-    "key": "ctrl+r",
-    "when": "editorTextFocus"
-  },
-  {
-    "command": "-vscode-neovim.send",
-    "key": "ctrl+r",
-    "when": "editorTextFocus && neovim.ctrlKeysNormal.r && neovim.init && neovim.mode != 'insert' && editorLangId not in 'neovim.editorLangIdExclusions'"
-  },
-  {
-    "command": "-vscode-neovim.send-blocking",
-    "key": "ctrl+r",
-    "when": "editorTextFocus && neovim.ctrlKeysInsert.r && neovim.init && neovim.mode == 'insert' && editorLangId not in 'neovim.editorLangIdExclusions'"
-  }
+  // {
+  //   "command": "code-runner.run",
+  //   "key": "ctrl+r",
+  //   "when": "editorTextFocus"
+  // },
 ]
