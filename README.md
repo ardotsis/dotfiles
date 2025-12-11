@@ -21,7 +21,7 @@ curl -fsSL dotfiles.ardotsis.com | bash -s -- -h vultr
 curl -fsSL dotfiles.ardotsis.com | bash -s -- -h arch
 ```
 
-### `ardotsis@windows`
+### Windows
 
 ```batch
 (Placeholder)
