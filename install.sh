@@ -134,9 +134,10 @@ declare -Ar PERMISSION=(
 	["${OPENSSH_SERVER["etc"]}"]="d root root 0755"
 	["${OPENSSH_SERVER["sshd_config"]}"]="f root root 0600"
 	# iptables
-	["${IPTABLES["etc"]}"]="d root root 0700"
-	["${IPTABLES["rules_v4"]}"]="f root root 0600"
-	["${IPTABLES["rules_v6"]}"]="f root root 0600"
+	["${IPTABLES["etc"]}"]="d root root 0755"
+	["${IPTABLES["rules_v4"]}"]="f root root 0644"
+	["${IPTABLES["rules_v6"]}"]="f root root 0644"
+	["${IPTABLES["iptables-restore.service"]}"]="f root root 0644"
 )
 
 declare -Ar URL=(
@@ -519,11 +520,10 @@ do_setup_vultr() {
 	sudo sed -i "s/^Port [0-9]\+/Port $ssh_port/" "${OPENSSH_SERVER["sshd_config"]}"
 	printf "SSH port: %s\n" "$ssh_port" >>"$SECRET_FILE"
 
-	# log_info "Resetting iptables directory..."
-	# $SUDO install -d -m 0755 "$iptables_dir"
-	# $SUDO install -m 0644 "${template_dir}/iptables/rules.v4" "$rules_v4"
-	# $SUDO install -m 0644 "${template_dir}/iptables/rules.v6" "$rules_v6"
-	# $SUDO install -m 0644 "${iptables_dir}/iptables-restore.service"
+	local tmpl_iptables="${DOTFILES_REPO["template"]}"
+	set_template "${IPTABLES["rules_v4"]}" "$tmpl_iptables/rules.v4}"
+	set_template "${IPTABLES["rules_v4"]}" "$tmpl_iptables/rules.v6}"
+	set_template "${IPTABLES["iptables-restore.service"]}" "$tmpl_iptables/iptables-restore.service"
 
 	if [[ "$IS_DOCKER" == "false" ]]; then
 		log_info "Restarting sshd..."

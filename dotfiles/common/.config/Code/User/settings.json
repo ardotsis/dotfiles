@@ -94,7 +94,9 @@
   "terminal.integrated.enableMultiLinePasteWarning": "never",
   "terminal.integrated.fontFamily": "'Hack Nerd Font', Consolas, 'Courier New', monospace",
   "terminal.integrated.fontSize": 12,
+  "terminal.integrated.initialHint": false,
   "terminal.integrated.stickyScroll.enabled": false,
+  "terminal.integrated.tabs.enabled": false,
   "vscode-neovim.compositeKeys": {
     "jj": {
       "command": "vscode-neovim.escape"
@@ -114,9 +116,9 @@
     "editor.selectionHighlightBorder": "#ff89c081"
   },
   "workbench.colorTheme": "Gruvbox in Black Bordered",
+  "workbench.editor.empty.hint": "hidden",
   "workbench.editor.enablePreview": false,
   "workbench.iconTheme": "material-icon-theme",
   "workbench.layoutControl.enabled": false,
-  "workbench.statusBar.visible": false,
-  "terminal.integrated.tabs.enabled": false
+  "workbench.statusBar.visible": false
 }

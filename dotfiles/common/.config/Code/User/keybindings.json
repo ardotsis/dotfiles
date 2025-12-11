@@ -97,5 +97,13 @@
     "command": "-workbench.action.focusFirstEditorGroup",
     "key": "ctrl+1",
     "when": "editorFocus"
+  },
+  {
+    "command": "-workbench.action.moveEditorToPreviousGroup",
+    "key": "ctrl+alt+left"
+  },
+  {
+    "command": "-workbench.action.moveEditorToNextGroup",
+    "key": "ctrl+alt+right"
   }
 ]
