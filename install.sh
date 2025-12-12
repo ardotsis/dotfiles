@@ -5,9 +5,8 @@ declare -r DEFAULT_USERNAME="ardotsis"
 
 declare -ar _PARAM_0=("--host" "-h" "value" "")
 declare -ar _PARAM_1=("--username" "-u" "value" "$DEFAULT_USERNAME")
-declare -ar _PARAM_2=("--initialized" "-i" "flag" "false")
-declare -ar _PARAM_3=("--local" "-l" "flag" "false")
-declare -ar _PARAM_4=("--docker" "-d" "flag" "false")
+declare -ar _PARAM_2=("--local" "-l" "flag" "false")
+declare -ar _PARAM_3=("--docker" "-d" "flag" "false")
 declare -A _PARAMS=()
 declare -a _ARGS=("$@")
 declare _IS_ARGS_PARSED="false"
@@ -81,8 +80,6 @@ IS_LOCAL=$(get_arg "local")
 declare -r IS_LOCAL
 IS_DOCKER=$(get_arg "docker")
 declare -r IS_DOCKER
-IS_INITIALIZED=$(get_arg "initialized")
-declare -r IS_INITIALIZED
 CURRENT_USER="$(whoami)"
 declare -r CURRENT_USER
 declare -Ar HOST_OS=(
@@ -191,7 +188,7 @@ _log() {
 
 	local timestamp
 	timestamp="$(date "+%Y-%m-%d %H:%M:%S")"
-	printf "[%s] [%b%s%b] [%s] %b\n" "$timestamp" "${LOG_CLR["${level}"]}" "${level^^}" "${CLR["reset"]}" "$caller" "$msg" >&2
+	printf "[%s] [%b%s%b] [%s] [%s] %b\n" "$timestamp" "${LOG_CLR["${level}"]}" "${level^^}" "${CLR["reset"]}" "$CURRENT_USER" "$caller" "$msg" >&2
 }
 log_debug() { _log "debug" "$1"; }
 log_info() { _log "info" "$1"; }
@@ -219,8 +216,7 @@ get_script_path() {
 
 get_script_run_cmd() {
 	local script_path="$1"
-	local initialized="$2"
-	local -n arr_ref="$3"
+	local -n arr_ref="$2"
 
 	arr_ref=(
 		"$script_path"
@@ -229,7 +225,6 @@ get_script_run_cmd() {
 		"--username"
 		"$INSTALL_USER"
 	)
-	[[ "$initialized" == "true" ]] && arr_ref+=("--initialized") || true
 	[[ "$IS_LOCAL" == "true" ]] && arr_ref+=("--local") || true
 	[[ "$IS_DOCKER" == "true" ]] && arr_ref+=("--docker") || true
 }
@@ -238,6 +233,16 @@ is_cmd_exist() {
 	local cmd="$1"
 
 	if command -v "$cmd" >/dev/null 2>&1; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+is_usr_exist() {
+	local username="$1"
+
+	if id "$username" >/dev/null 2>&1; then
 		return 0
 	else
 		return 1
@@ -328,7 +333,7 @@ set_template() {
 		log_debug "Delete tmp file"
 		rm -rf "$template_path"
 	fi
-	log_info "Create '$item_path' ($user:$group $num)"
+	log_info "${CLR[cyan]}Created${CLR[reset]} ${CLR[yellow]}'$item_path'${CLR[reset]} (owner=$user, group=$group, mode=$num)"
 }
 
 ##################################################
@@ -540,16 +545,16 @@ do_setup_arch() {
 
 # "_main": To prevent the log function from logging it as _GLOBAL_
 _main() {
-	if [[ "$IS_INITIALIZED" == "true" ]]; then
-		log_debug "Change current directory to $HOME_DIR"
+	if is_usr_exist "$INSTALL_USER"; then
 		cd "$HOME_DIR"
 		"do_setup_${HOST}"
 	else
+		log_info "Creating ${CLR["yellow"]}${INSTALL_USER}${CLR["reset"]}..."
+
 		if [[ -n "$SUDO" ]]; then
 			sudo -v
 		fi
 
-		log_info "Create ${CLR["yellow"]}${INSTALL_USER}${CLR["reset"]}"
 		local passwd
 		passwd="$(get_random_str 64)"
 
@@ -561,7 +566,7 @@ _main() {
 		set_template "$SECRET_FILE"
 
 		local run_cmd
-		get_script_run_cmd "$(get_script_path)" "true" "run_cmd"
+		get_script_run_cmd "$(get_script_path)" "run_cmd"
 		log_vars "run_cmd[@]"
 
 		log_info "Done user creation"
@@ -569,8 +574,7 @@ _main() {
 	fi
 }
 
-log_info "============== Begin ${CLR["yellow"]}$CURRENT_USER${CLR["reset"]} Session =============="
-if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
+if [[ -z "${BASH_SOURCE[0]+x}" ]]; then
 	if [[ "$IS_LOCAL" == "true" ]]; then
 		dev_install_file="$DOCKER_VOL_DIR/install.sh"
 		log_info "Copying script from ${CLR["yellow"]}$dev_install_file${CLR["reset"]}..."
@@ -580,7 +584,7 @@ if [[ -z "${BASH_SOURCE[0]+x}" && "$IS_INITIALIZED" == "false" ]]; then
 		set_template "$TMP_INSTALL_SCRIPT_FILE" "" "${URL["dotfiles_install_script"]}"
 	fi
 
-	get_script_run_cmd "$TMP_INSTALL_SCRIPT_FILE" "false" "run_cmd"
+	get_script_run_cmd "$TMP_INSTALL_SCRIPT_FILE" "run_cmd"
 	printf "Restarting...\n\n"
 	"${run_cmd[@]}"
 else
