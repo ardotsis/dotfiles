@@ -322,7 +322,6 @@ set_template() {
 		fi
 	fi
 
-	declare -p "install_cmd"
 	"${install_cmd[@]}"
 
 	if [[ $is_tmp_exist == "true" ]]; then
