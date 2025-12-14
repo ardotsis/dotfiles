@@ -9,6 +9,7 @@ RUN apt-get update && \
     curl \
     git \
     wget \
+    neovim \
     zsh
 
 # Simulate run script via pipeline (curl)

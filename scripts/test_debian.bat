@@ -18,7 +18,10 @@ set "DOCKER_CLI_HINTS=false"
 
 if "%FLAG%"=="--cleanup" (
   echo Cleaning up running containers created from '%IMAGE%'...
-  for /f "tokens=*" %%i in ('docker ps -aq --filter "ancestor=%IMAGE%" -q') do (
+  for /f "tokens=*" %%i in ('docker ps -aq --filter "ancestor=%IMAGE%"') do (
+    docker rm -f %%i
+  )
+  for /f "tokens=*" %%i in ('docker ps -aq --filter "name=%CONTAINER_NAME%"') do (
     docker rm -f %%i
   )
   echo.

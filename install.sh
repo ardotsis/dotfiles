@@ -95,7 +95,7 @@ declare -r TMP_DIR="/var/tmp"
 declare -r GIT_REMOTE_BRANCH="main"
 declare -r REPO_DIRNAME=".dotfiles"
 declare -r REPO_DIR="$HOME_DIR/$REPO_DIRNAME"
-declare -r SECRET_FILE="$HOME_DIR/SECRET_FILE"
+declare -r SECRET_FILE="$HOME_DIR/DOTFILES_SECRET_FILE"
 declare -r DOCKER_VOL_DIR="$TMP_DIR/${REPO_DIRNAME}_docker-volume"
 declare -r TMP_INSTALL_SCRIPT_FILE="$TMP_DIR/install_dotfiles.sh"
 
@@ -104,7 +104,7 @@ DOTFILES_REPO["src"]="$REPO_DIR/dotfiles"
 DOTFILES_REPO["common"]="${DOTFILES_REPO["src"]}/common"
 DOTFILES_REPO["host"]="${DOTFILES_REPO["src"]}/hosts/$HOST"
 DOTFILES_REPO["packages"]="${DOTFILES_REPO["src"]}/packages.txt"
-DOTFILES_REPO["template"]="${DOTFILES_REPO["host"]}/template"
+DOTFILES_REPO["template"]="${DOTFILES_REPO["host"]}/.template"
 declare -r DOTFILES_REPO
 
 declare -A OPENSSH_SERVER
@@ -160,6 +160,8 @@ declare -Ar LOG_CLR=(
 	["error"]="${CLR["red"]}"
 	["var"]="${CLR["purple"]}"
 	["value"]="${CLR["cyan"]}"
+	["path"]="${CLR["yellow"]}"
+	["highlight"]="${CLR["red"]}"
 )
 
 if [[ "$(id -u)" == "0" ]]; then
@@ -188,7 +190,7 @@ _log() {
 
 	local timestamp
 	timestamp="$(date "+%Y-%m-%d %H:%M:%S")"
-	printf "[%s] [%b%s%b] [%s] [%s] %b\n" "$timestamp" "${LOG_CLR["${level}"]}" "${level^^}" "${CLR["reset"]}" "$CURRENT_USER" "$caller" "$msg" >&2
+	printf "[%s] [%b%s%b] [%s] (%s) %b\n" "$timestamp" "${LOG_CLR["${level}"]}" "${level^^}" "${CLR["reset"]}" "$caller" "$CURRENT_USER" "$msg" >&2
 }
 log_debug() { _log "debug" "$1"; }
 log_info() { _log "info" "$1"; }
@@ -299,7 +301,7 @@ set_template() {
 	local num="${perm[3]}"
 
 	if [[ -e "$item_path" ]]; then
-		log_info "Deleting $item_path..."
+		log_debug "Deleting $item_path..."
 		$SUDO rm -rf "$item_path"
 	fi
 
@@ -333,7 +335,7 @@ set_template() {
 		log_debug "Delete tmp file"
 		rm -rf "$template_path"
 	fi
-	log_info "${CLR[cyan]}Created${CLR[reset]} ${CLR[yellow]}'$item_path'${CLR[reset]} (owner=$user, group=$group, mode=$num)"
+	log_debug "Created ${LOG_CLR[path]}'$item_path'${CLR[reset]} (owner=$user, group=$group, mode=$num)"
 }
 
 ##################################################
@@ -467,11 +469,11 @@ do_link() {
 			if [[ -d "$actual_item" ]]; then
 				if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
 					renamed_as_home_item="${a_home_dir}/${item#"${HOST_PREFIX}"}"
-					log_info "Create directory: '$renamed_as_home_item'"
+					log_debug "Create directory: '$renamed_as_home_item'"
 					mkdir "$renamed_as_home_item"
 					do_link "$as_home_item" "$item_type" "$as_home_item"
 				else
-					log_info "Create directory: '$as_home_item'"
+					log_debug "Create directory: '$as_home_item'"
 					mkdir "$as_home_item"
 					if [[ "$item_type" == "union" ]]; then
 						do_link "$as_home_item"
@@ -504,6 +506,9 @@ do_setup_vultr() {
 	do_link
 	install_listed_packages
 
+	log_info "Change default shell to Zsh"
+	$SUDO chsh -s "$(which zsh)" "$(whoami)"
+
 	# Disable and uninstall UFW
 	if is_cmd_exist ufw; then
 		log_info "Uninstalling UFW..."
@@ -515,7 +520,7 @@ do_setup_vultr() {
 	set_template "$HOME_SSH_DIR/authorized_keys"
 
 	local sshd_config_tmpl="${DOTFILES_REPO["template"]}/openssh-server/sshd_config"
-	set_template "${OPENSSH_SERVER["etc"]}"
+	# set_template "${OPENSSH_SERVER["etc"]}"
 	set_template "${OPENSSH_SERVER["sshd_config"]}" "$sshd_config_tmpl"
 
 	# Generate SSH port number
@@ -537,6 +542,12 @@ do_setup_vultr() {
 		log_info "Enabling iptables-restore service..."
 		$SUDO systemctl enable iptables-restore.service
 	fi
+
+	log_info "Executing oh-my-zsh installation script.."
+	sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+	log_info "Executing Docker installation script.."
+	sh -c "$(curl -fsSL https://get.docker.com)"
+
 }
 
 do_setup_arch() {
@@ -549,7 +560,7 @@ _main() {
 		cd "$HOME_DIR"
 		"do_setup_${HOST}"
 	else
-		log_info "Creating ${CLR["yellow"]}${INSTALL_USER}${CLR["reset"]}..."
+		log_info "Creating ${LOG_CLR["highlight"]}${INSTALL_USER}${CLR["reset"]}..."
 
 		if [[ -n "$SUDO" ]]; then
 			sudo -v
@@ -557,19 +568,18 @@ _main() {
 
 		local passwd
 		passwd="$(get_random_str 64)"
-
 		add_user "$INSTALL_USER" "$passwd"
 
 		log_info "Create secret file on $SECRET_FILE"
-		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >"$SECRET_FILE"
-		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"$SECRET_FILE"
 		set_template "$SECRET_FILE"
+		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >>"$SECRET_FILE"
+		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"$SECRET_FILE"
 
 		local run_cmd
 		get_script_run_cmd "$(get_script_path)" "run_cmd"
 		log_vars "run_cmd[@]"
 
-		log_info "Done user creation"
+		log_info "Starting install script as $INSTALL_USER"
 		sudo -u "$INSTALL_USER" -- "${run_cmd[@]}"
 	fi
 }
@@ -577,20 +587,20 @@ _main() {
 if [[ -z "${BASH_SOURCE[0]+x}" ]]; then
 	if [[ "$IS_LOCAL" == "true" ]]; then
 		dev_install_file="$DOCKER_VOL_DIR/install.sh"
-		log_info "Copying script from ${CLR["yellow"]}$dev_install_file${CLR["reset"]}..."
+		log_debug "Copying script from ${CLR["yellow"]}$dev_install_file${CLR["reset"]}..."
 		set_template "$TMP_INSTALL_SCRIPT_FILE" "$dev_install_file"
 	else
-		log_info "Downloading script from ${CLR["yellow"]}Git${CLR["reset"]} repository..."
+		log_debug "Downloading script from ${CLR["yellow"]}Git${CLR["reset"]} repository..."
 		set_template "$TMP_INSTALL_SCRIPT_FILE" "" "${URL["dotfiles_install_script"]}"
 	fi
 
 	get_script_run_cmd "$TMP_INSTALL_SCRIPT_FILE" "run_cmd"
-	printf "Restarting...\n\n"
+	log_info "Restarting...\n\n"
 	"${run_cmd[@]}"
 else
 	_main
 	if [[ "$IS_DOCKER" == "true" ]]; then
-		log_debug "Docker mode is enabled. Keeping docker container running..."
+		log_info "Docker mode is enabled. Keeping docker container running..."
 		tail -f /dev/null
 	fi
 fi
