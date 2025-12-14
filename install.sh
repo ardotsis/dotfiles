@@ -116,7 +116,7 @@ declare -A IPTABLES
 IPTABLES["etc"]="/etc/iptables"
 IPTABLES["rules_v4"]="${IPTABLES["etc"]}/rules.v4"
 IPTABLES["rules_v6"]="${IPTABLES["etc"]}/rules.v6"
-IPTABLES["iptables-restore.service"]="${IPTABLES["etc"]}/iptables-restore.service"
+IPTABLES["iptables-restore.service"]="/etc/systemd/system/iptables-restore.service"
 declare -r IPTABLES
 
 declare -Ar PERMISSION=(
