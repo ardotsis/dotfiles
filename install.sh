@@ -547,7 +547,6 @@ do_setup_vultr() {
 	sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 	log_info "Executing Docker installation script.."
 	sh -c "$(curl -fsSL https://get.docker.com)"
-
 }
 
 do_setup_arch() {
