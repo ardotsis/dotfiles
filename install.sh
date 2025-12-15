@@ -531,7 +531,7 @@ do_setup_vultr() {
 	local tmpl_iptables="${DOTFILES_REPO["template"]}/iptables"
 	set_template "${IPTABLES["etc"]}"
 	set_template "${IPTABLES["rules_v4"]}" "$tmpl_iptables/rules.v4"
-	set_template "${IPTABLES["rules_v4"]}" "$tmpl_iptables/rules.v6"
+	set_template "${IPTABLES["rules_v6"]}" "$tmpl_iptables/rules.v6"
 	set_template "${IPTABLES["iptables-restore.service"]}" "$tmpl_iptables/iptables-restore.service"
 
 	if [[ "$IS_DOCKER" == "false" ]]; then
