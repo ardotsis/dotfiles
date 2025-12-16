@@ -93,6 +93,8 @@
   "terminal.integrated.fontSize": 12,
   "terminal.integrated.initialHint": false,
   "terminal.integrated.stickyScroll.enabled": false,
+  "terminal.integrated.suggest.cdPath": "relative",
+  "terminal.integrated.suggest.enabled": false,
   "terminal.integrated.tabs.enabled": false,
   "vscode-neovim.compositeKeys": {
     "jj": {
@@ -118,6 +120,5 @@
   "workbench.iconTheme": "material-icon-theme",
   "workbench.layoutControl.enabled": false,
   "workbench.startupEditor": "none",
-  "workbench.statusBar.visible": false,
-  "terminal.integrated.suggest.cdPath": "relative"
+  "workbench.statusBar.visible": false
 }
