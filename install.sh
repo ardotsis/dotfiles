@@ -116,7 +116,7 @@ declare -A IPTABLES
 IPTABLES["etc"]="/etc/iptables"
 IPTABLES["rules_v4"]="${IPTABLES["etc"]}/rules.v4"
 IPTABLES["rules_v6"]="${IPTABLES["etc"]}/rules.v6"
-IPTABLES["iptables-restore.service"]="/etc/systemd/system/iptables-restore.service"
+IPTABLES["service"]="/etc/systemd/system/iptables-restore.service"
 declare -r IPTABLES
 
 declare -Ar PERMISSION=(
@@ -133,7 +133,7 @@ declare -Ar PERMISSION=(
 	["${IPTABLES["etc"]}"]="d root root 0755"
 	["${IPTABLES["rules_v4"]}"]="f root root 0644"
 	["${IPTABLES["rules_v6"]}"]="f root root 0644"
-	["${IPTABLES["iptables-restore.service"]}"]="f root root 0644"
+	["${IPTABLES["service"]}"]="f root root 0644"
 )
 
 declare -Ar URL=(
@@ -532,7 +532,7 @@ do_setup_vultr() {
 	set_template "${IPTABLES["etc"]}"
 	set_template "${IPTABLES["rules_v4"]}" "$tmpl_iptables/rules.v4"
 	set_template "${IPTABLES["rules_v6"]}" "$tmpl_iptables/rules.v6"
-	set_template "${IPTABLES["iptables-restore.service"]}" "$tmpl_iptables/iptables-restore.service"
+	set_template "${IPTABLES["service"]}" "$tmpl_iptables/iptables-restore.service"
 
 	if [[ "$IS_DOCKER" == "false" ]]; then
 		log_info "Restarting sshd..."
