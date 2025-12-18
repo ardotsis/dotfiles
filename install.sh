@@ -595,12 +595,15 @@ do_setup_vultr() {
 
 	{
 		printf "Host git\n"
-		printf "  HostName %s\n" "$(curl -fsSL https://api.ipify.org)"
+		printf "  HostName github.com\n"
 		printf "  User git\n"
 		printf "  IdentityFile ~/.ssh/%s\n" "$git_filename"
 		printf "  IdentitiesOnly yes\n"
 		printf "\n"
 	} >>"${SSH["config"]}"
+
+	rm -f "${SSH["etc"]}/$git_filename.pub"
+
 	# Reload services
 	if [[ "$IS_DOCKER" == "false" ]]; then
 		log_info "Restarting sshd..."
