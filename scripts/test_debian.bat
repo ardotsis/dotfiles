@@ -4,7 +4,7 @@
 set "INSTALL_SCRIPT_PARAMS=%~1"
 set "FLAG=%~2"
 
-@REM Paths
+@REM Docker run configurations
 set "REPO_DIR=%~dp0.."
 set "DOCKERFILE=%REPO_DIR%\tests\Dockerfile.debian"
 set "IMAGE_NAME=dotfiles-debian"
@@ -41,6 +41,8 @@ if "%FLAG%"=="--build" (
 
 docker run ^
 --rm ^
+--interactive ^
+--tty ^
 --mount type=bind,source="%REPO_DIR%",target="%DOTFILES_VOLUME_DIR%",readonly ^
 --env INSTALL_SCRIPT_PARAMS="%INSTALL_SCRIPT_PARAMS%" ^
 --env DOTFILES_VOLUME_DIR="%DOTFILES_VOLUME_DIR%" ^

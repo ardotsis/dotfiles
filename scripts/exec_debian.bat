@@ -1,5 +1,13 @@
 @echo off
+
+set "DEV_USERNAME=devuser"
+set "IMAGE_NAME=dotfiles-debian"
+set "CONTAINER_NAME=%IMAGE_NAME%-container"
 set "DOCKER_CLI_HINTS=false"
 
-set "IMAGE_NAME=dotfiles-debian"
-docker exec -it --user kana "%IMAGE_NAME%-container" zsh
+docker exec ^
+--interactive ^
+--tty ^
+--user "%DEV_USERNAME%" ^
+--workdir "/home/%DEV_USERNAME%" ^
+"%CONTAINER_NAME%" zsh

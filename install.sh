@@ -518,15 +518,7 @@ do_setup_vultr() {
 
 	set_template "$HOME_SSH_DIR"
 	set_template "$HOME_SSH_DIR/authorized_keys"
-
-	local sshd_config_tmpl="${DOTFILES_REPO["template"]}/openssh-server/sshd_config"
-	# set_template "${OPENSSH_SERVER["etc"]}"
-	set_template "${OPENSSH_SERVER["sshd_config"]}" "$sshd_config_tmpl"
-
-	# Generate SSH port number
-	local ssh_port="$((1024 + RANDOM % (65535 - 1024 + 1)))"
-	sudo sed -i "s/^Port [0-9]\+/Port $ssh_port/" "${OPENSSH_SERVER["sshd_config"]}"
-	printf "SSH port: %s\n" "$ssh_port" >>"$SECRET_FILE"
+	set_template "${OPENSSH_SERVER["sshd_config"]}" "${DOTFILES_REPO["template"]}/openssh-server/sshd_config"
 
 	local tmpl_iptables="${DOTFILES_REPO["template"]}/iptables"
 	set_template "${IPTABLES["etc"]}"
@@ -534,14 +526,10 @@ do_setup_vultr() {
 	set_template "${IPTABLES["rules_v6"]}" "$tmpl_iptables/rules.v6"
 	set_template "${IPTABLES["service"]}" "$tmpl_iptables/iptables-restore.service"
 
-	if [[ "$IS_DOCKER" == "false" ]]; then
-		log_info "Restarting sshd..."
-		$SUDO systemctl restart sshd
-		log_info "Reloading systemctl daemon..."
-		$SUDO systemctl daemon-reload
-		log_info "Enabling iptables-restore service..."
-		$SUDO systemctl enable iptables-restore.service
-	fi
+	# Generate SSH port number
+	local ssh_port="$((1024 + RANDOM % (65535 - 1024 + 1)))"
+	$SUDO sed -i "s/^Port [0-9]\+/Port $ssh_port/" "${OPENSSH_SERVER["sshd_config"]}"
+	$SUDO sed -i "s|^-A INPUT -p tcp --dport [0-9]\+ -j ACCEPT$|-A INPUT -p tcp --dport $ssh_port -j ACCEPT|" "${IPTABLES["rules_v4"]}"
 
 	log_info "Executing oh-my-zsh installation script.."
 	sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
@@ -551,6 +539,39 @@ do_setup_vultr() {
 		sh -c "$(curl -fsSL https://get.docker.com)"
 	fi
 
+	cat <<EOF >>"$SECRET_FILE"
+# Config template for SSH client
+Host $HOST
+  HostName $(curl https://api.ipify.org)
+  Port $ssh_port
+  User $INSTALL_USER
+  IdentityFile ~/.ssh/$HOST
+  IdentitiesOnly yes
+
+EOF
+
+	local ssh_publickey
+	read -r -p "Paste SSH public key: " ssh_publickey </dev/tty
+	printf "%s" "$ssh_publickey" >>"$HOME_SSH_DIR/authorized_keys"
+
+	local ssh_git_passphrase
+	ssh_git_passphrase="$(get_random_str 72)"
+	ssh-keygen -t ed25519 -b 4096 -f "$HOME_SSH_DIR/git" -N "$ssh_git_passphrase"
+	{
+		printf "# SSH passphrase for Git\n%s\n\n" "$ssh_git_passphrase"
+		printf "# SSH public key for Git\n"
+		cat "$HOME_SSH_DIR/git.pub"
+		printf "\n"
+	} >>"$SECRET_FILE"
+
+	if [[ "$IS_DOCKER" == "false" ]]; then
+		log_info "Restarting sshd..."
+		$SUDO systemctl restart sshd
+		log_info "Reloading systemctl daemon..."
+		$SUDO systemctl daemon-reload
+		log_info "Enabling iptables-restore service..."
+		$SUDO systemctl enable iptables-restore.service
+	fi
 }
 
 do_setup_arch() {
@@ -575,8 +596,8 @@ _main() {
 
 		log_info "Create secret file on $SECRET_FILE"
 		set_template "$SECRET_FILE"
-		printf "# This is secret file. Do NOT share with others.\n# Delete the file, once you complete the process.\n" >>"$SECRET_FILE"
-		printf "Password for %s: %s\n" "$INSTALL_USER" "$passwd" >>"$SECRET_FILE"
+		printf "# Do NOT share with others!\n# Delete this file, once you complete the process.\n\n" >>"$SECRET_FILE"
+		printf "# Password for %s\n%s\n\n" "$INSTALL_USER" "$passwd" >>"$SECRET_FILE"
 
 		local run_cmd
 		get_script_run_cmd "$(get_script_path)" "run_cmd"

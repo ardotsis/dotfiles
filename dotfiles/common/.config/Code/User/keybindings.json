@@ -105,5 +105,33 @@
   {
     "command": "-workbench.action.moveEditorToNextGroup",
     "key": "ctrl+alt+right"
+  },
+  {
+    "command": "workbench.action.terminal.focusAtIndex1",
+    "key": "ctrl+1",
+    "when": "terminalFocus"
+  },
+  {
+    "command": "workbench.action.terminal.focusAtIndex2",
+    "key": "ctrl+2",
+    "when": "terminalFocus"
+  },
+  {
+    "command": "workbench.action.terminal.focusAtIndex3",
+    "key": "ctrl+3",
+    "when": "terminalFocus"
+  },
+  {
+    "command": "workbench.action.terminal.focusAtIndex4",
+    "key": "ctrl+4",
+    "when": "terminalFocus"
+  },
+  {
+    "command": "workbench.action.toggleSidebarVisibility",
+    "key": "ctrl+0"
+  },
+  {
+    "command": "-workbench.action.toggleSidebarVisibility",
+    "key": "ctrl+b"
   }
 ]
