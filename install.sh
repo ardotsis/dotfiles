@@ -545,6 +545,20 @@ do_setup_vultr() {
 	$SUDO sed -i "s/^Port [0-9]\+/Port $ssh_port/" "${OPENSSH_SERVER["sshd_config"]}"
 	$SUDO sed -i "s|^-A INPUT -p tcp --dport [0-9]\+ -j ACCEPT$|-A INPUT -p tcp --dport $ssh_port -j ACCEPT|" "${IPTABLES["rules_v4"]}"
 
+	# Change default shell to Zsh
+	log_info "Change default shell to Zsh"
+	$SUDO chsh -s "$(which zsh)" "$(whoami)"
+
+	# Oh My Zsh installation script
+	log_info "Executing oh-my-zsh installation script.."
+	sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+	# Docker installation script
+	if [[ "$IS_DOCKER" == "false" ]]; then
+		log_info "Executing Docker installation script.."
+		sh -c "$(curl -fsSL https://get.docker.com)"
+	fi
+
 	# Prepare SSH config for "client" and "Git"
 	# [ Client ] --> [ This Host ]
 	local ssh_publickey
@@ -580,28 +594,13 @@ do_setup_vultr() {
 	} >>"$SECRET_FILE"
 
 	{
-		printf "Host git"
+		printf "Host git\n"
 		printf "  HostName %s\n" "$(curl -fsSL https://api.ipify.org)"
 		printf "  User git\n"
 		printf "  IdentityFile ~/.ssh/%s\n" "$git_filename"
 		printf "  IdentitiesOnly yes\n"
 		printf "\n"
 	} >>"${SSH["config"]}"
-
-	# Change default shell to Zsh
-	log_info "Change default shell to Zsh"
-	$SUDO chsh -s "$(which zsh)" "$(whoami)"
-
-	# Oh My Zsh installation script
-	log_info "Executing oh-my-zsh installation script.."
-	sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-
-	# Docker installation script
-	if [[ "$IS_DOCKER" == "false" ]]; then
-		log_info "Executing Docker installation script.."
-		sh -c "$(curl -fsSL https://get.docker.com)"
-	fi
-
 	# Reload services
 	if [[ "$IS_DOCKER" == "false" ]]; then
 		log_info "Restarting sshd..."
