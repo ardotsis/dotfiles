@@ -7,6 +7,7 @@ declare -ar _PARAM_0=("--host" "-h" "value" "")
 declare -ar _PARAM_1=("--username" "-u" "value" "$DEFAULT_USERNAME")
 declare -ar _PARAM_2=("--local" "-l" "flag" "false")
 declare -ar _PARAM_3=("--docker" "-d" "flag" "false")
+declare -ar _PARAM_4=("--debug" "-de" "flag" "false")
 declare -A _PARAMS=()
 declare -a _ARGS=("$@")
 declare _IS_ARGS_PARSED="false"
@@ -80,6 +81,8 @@ IS_LOCAL=$(get_arg "local")
 declare -r IS_LOCAL
 IS_DOCKER=$(get_arg "docker")
 declare -r IS_DOCKER
+IS_DEBUG=$(get_arg "debug")
+declare -r IS_DEBUG
 CURRENT_USER="$(whoami)"
 declare -r CURRENT_USER
 declare -Ar HOST_OS=(
@@ -90,7 +93,6 @@ declare -Ar HOST_OS=(
 declare -r OS="${HOST_OS["$HOST"]}"
 declare -r HOST_PREFIX="${HOST^^}_"
 declare -r HOME_DIR="/home/$INSTALL_USER"
-declare -r HOME_SSH_DIR="$HOME_DIR/.ssh"
 declare -r TMP_DIR="/var/tmp"
 declare -r GIT_REMOTE_BRANCH="main"
 declare -r REPO_DIRNAME=".dotfiles"
@@ -107,6 +109,12 @@ DOTFILES_REPO["packages"]="${DOTFILES_REPO["src"]}/packages.txt"
 DOTFILES_REPO["template"]="${DOTFILES_REPO["host"]}/.template"
 declare -r DOTFILES_REPO
 
+declare -A SSH
+SSH["etc"]="$HOME_DIR/.ssh"
+SSH["authorized_keys"]="${SSH["etc"]}/authorized_keys"
+SSH["config"]="${SSH["etc"]}/config"
+declare -r SSH
+
 declare -A OPENSSH_SERVER
 OPENSSH_SERVER["etc"]="/etc/ssh"
 OPENSSH_SERVER["sshd_config"]="${OPENSSH_SERVER["etc"]}/sshd_config"
@@ -120,12 +128,13 @@ IPTABLES["service"]="/etc/systemd/system/iptables-restore.service"
 declare -r IPTABLES
 
 declare -Ar PERMISSION=(
-	# Home items
-	["$HOME_SSH_DIR"]="d $INSTALL_USER $INSTALL_USER 0700"
-	["$HOME_SSH_DIR/authorized_keys"]="f $INSTALL_USER $INSTALL_USER 0600"
-	# Script item
+	# Dotfiles
 	["$SECRET_FILE"]="f $INSTALL_USER $INSTALL_USER 0600"
 	["$TMP_INSTALL_SCRIPT_FILE"]="f root root 0755"
+	# SSH
+	["${SSH["etc"]}"]="d $INSTALL_USER $INSTALL_USER 0700"
+	["${SSH["authorized_keys"]}"]="f $INSTALL_USER $INSTALL_USER 0600"
+	["${SSH["config"]}"]="f $INSTALL_USER $INSTALL_USER 0600"
 	# openssh-server
 	["${OPENSSH_SERVER["etc"]}"]="d root root 0755"
 	["${OPENSSH_SERVER["sshd_config"]}"]="f root root 0600"
@@ -227,8 +236,10 @@ get_script_run_cmd() {
 		"--username"
 		"$INSTALL_USER"
 	)
+	# TODO: Detect flag(s) automatically
 	[[ "$IS_LOCAL" == "true" ]] && arr_ref+=("--local") || true
 	[[ "$IS_DOCKER" == "true" ]] && arr_ref+=("--docker") || true
+	[[ "$IS_DEBUG" == "true" ]] && arr_ref+=("--debug") || true
 }
 
 is_cmd_exist() {
@@ -502,68 +513,96 @@ do_link() {
 ##################################################
 do_setup_vultr() {
 	log_info "Start setup vultr"
+
+	# Do common installations
 	clone_dotfiles_repo
 	do_link
 	install_listed_packages
 
-	log_info "Change default shell to Zsh"
-	$SUDO chsh -s "$(which zsh)" "$(whoami)"
-
-	# Disable and uninstall UFW
+	# Uninstall UFW
 	if is_cmd_exist ufw; then
 		log_info "Uninstalling UFW..."
 		$SUDO ufw disable
 		remove_package "ufw"
 	fi
 
-	set_template "$HOME_SSH_DIR"
-	set_template "$HOME_SSH_DIR/authorized_keys"
+	# Install files / directories
+	# SSH
+	set_template "${SSH["etc"]}"
+	set_template "${SSH["authorized_keys"]}"
+	set_template "${SSH["config"]}"
+	# openssh-server
 	set_template "${OPENSSH_SERVER["sshd_config"]}" "${DOTFILES_REPO["template"]}/openssh-server/sshd_config"
-
+	# iptables
 	local tmpl_iptables="${DOTFILES_REPO["template"]}/iptables"
 	set_template "${IPTABLES["etc"]}"
 	set_template "${IPTABLES["rules_v4"]}" "$tmpl_iptables/rules.v4"
 	set_template "${IPTABLES["rules_v6"]}" "$tmpl_iptables/rules.v6"
 	set_template "${IPTABLES["service"]}" "$tmpl_iptables/iptables-restore.service"
 
-	# Generate SSH port number
+	# Change SSH port
 	local ssh_port="$((1024 + RANDOM % (65535 - 1024 + 1)))"
 	$SUDO sed -i "s/^Port [0-9]\+/Port $ssh_port/" "${OPENSSH_SERVER["sshd_config"]}"
 	$SUDO sed -i "s|^-A INPUT -p tcp --dport [0-9]\+ -j ACCEPT$|-A INPUT -p tcp --dport $ssh_port -j ACCEPT|" "${IPTABLES["rules_v4"]}"
 
+	# Prepare SSH config for "client" and "Git"
+	# [ Client ] --> [ This Host ]
+	local ssh_publickey
+	if [[ "$IS_DEBUG" == "true" ]]; then
+		ssh_publickey="some_ssh_publickey"
+	else
+		read -r -p "Paste SSH public key: " ssh_publickey </dev/tty
+	fi
+	printf "%s" "$ssh_publickey" >>"${SSH["authorized_keys"]}"
+
+	{
+		printf "# Config template for SSH client\n"
+		printf "Host %s\n" "$HOST"
+		printf "  HostName %s\n" "$(curl -fsSL https://api.ipify.org)"
+		printf "  Port %s\n" "$ssh_port"
+		printf "  User %s\n" "$INSTALL_USER"
+		printf "  IdentityFile ~/.ssh/%s\n" "$HOST"
+		printf "  IdentitiesOnly yes\n"
+		printf "\n"
+	} >>"$SECRET_FILE"
+
+	# [ This Host ] --> [ Git ]
+	local ssh_git_passphrase
+	ssh_git_passphrase="$(get_random_str 72)"
+	local git_filename="git"
+	ssh-keygen -t ed25519 -b 4096 -f "${SSH["etc"]}/$git_filename" -N "$ssh_git_passphrase"
+
+	{
+		printf "# SSH passphrase for Git\n%s\n\n" "$ssh_git_passphrase"
+		printf "# SSH public key for Git\n"
+		cat "${SSH["etc"]}/$git_filename.pub"
+		printf "\n"
+	} >>"$SECRET_FILE"
+
+	{
+		printf "Host git"
+		printf "  HostName %s\n" "$(curl -fsSL https://api.ipify.org)"
+		printf "  User git\n"
+		printf "  IdentityFile ~/.ssh/%s\n" "$git_filename"
+		printf "  IdentitiesOnly yes\n"
+		printf "\n"
+	} >>"${SSH["config"]}"
+
+	# Change default shell to Zsh
+	log_info "Change default shell to Zsh"
+	$SUDO chsh -s "$(which zsh)" "$(whoami)"
+
+	# Oh My Zsh installation script
 	log_info "Executing oh-my-zsh installation script.."
 	sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
+	# Docker installation script
 	if [[ "$IS_DOCKER" == "false" ]]; then
 		log_info "Executing Docker installation script.."
 		sh -c "$(curl -fsSL https://get.docker.com)"
 	fi
 
-	cat <<EOF >>"$SECRET_FILE"
-# Config template for SSH client
-Host $HOST
-  HostName $(curl https://api.ipify.org)
-  Port $ssh_port
-  User $INSTALL_USER
-  IdentityFile ~/.ssh/$HOST
-  IdentitiesOnly yes
-
-EOF
-
-	local ssh_publickey
-	read -r -p "Paste SSH public key: " ssh_publickey </dev/tty
-	printf "%s" "$ssh_publickey" >>"$HOME_SSH_DIR/authorized_keys"
-
-	local ssh_git_passphrase
-	ssh_git_passphrase="$(get_random_str 72)"
-	ssh-keygen -t ed25519 -b 4096 -f "$HOME_SSH_DIR/git" -N "$ssh_git_passphrase"
-	{
-		printf "# SSH passphrase for Git\n%s\n\n" "$ssh_git_passphrase"
-		printf "# SSH public key for Git\n"
-		cat "$HOME_SSH_DIR/git.pub"
-		printf "\n"
-	} >>"$SECRET_FILE"
-
+	# Reload services
 	if [[ "$IS_DOCKER" == "false" ]]; then
 		log_info "Restarting sshd..."
 		$SUDO systemctl restart sshd
