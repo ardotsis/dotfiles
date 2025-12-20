@@ -58,6 +58,8 @@ curl -fsSL df.ardotsis.com | bash -s -- -h arch
 
 ## ToDo
 
+- [ ] cloud-init
+
 - [ ] Note daily tools (e.g., Obisidian, LibreWolf)
 
 - [ ] Decide backup routine. (e.g., PC, iPhone)
@@ -70,7 +72,7 @@ curl -fsSL df.ardotsis.com | bash -s -- -h arch
   - Codeberg
   - Gitea
 
-- [ ] Debian
+- [x] Debian
   - Preseed
 
 - [ ] dotfiles for Windows.
