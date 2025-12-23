@@ -192,6 +192,7 @@ _log() {
 	local level="$1"
 	local msg="$2"
 
+	# TODO: fix lineno
 	local caller="_GLOBAL_"
 	for funcname in "${FUNCNAME[@]}"; do
 		[[ "$funcname" == "_log" ]] && continue
@@ -370,11 +371,10 @@ set_perm_item() {
 	fi
 
 	# Execute "install" command
-	log_debug "Creating \"${LOG_CLR["path"]}$item_path${CLR["reset"]}\"... (template=\"${LOG_CLR["path"]}$template_uri${CLR["reset"]}\" owner=$user, group=$group, mode=$num)"
+	log_debug "Create item: \"${LOG_CLR["path"]}$item_path${CLR["reset"]}\" (template=\"${LOG_CLR["path"]}$template_uri${CLR["reset"]}\" owner=$user, group=$group, mode=$num)"
 	"${install_cmd[@]}"
 
 	if [[ $is_curled == "true" ]]; then
-		log_debug "Deleting temporary curl file..."
 		rm -rf "$curl_file_path"
 	fi
 }
@@ -441,6 +441,8 @@ do_link() {
 			<(find "$dir_path" -mindepth 1 -maxdepth 1 -printf "%f\0")
 	}
 
+	log_debug "Processing \"${LOG_CLR["path"]}$a_home_dir${CLR["reset"]}\"..."
+
 	local pre_host_items=() pre_common_items=()
 	if [[ -n "$dir_type" ]]; then
 		local as_dir_var="as_${dir_type}_dir"
@@ -464,8 +466,6 @@ do_link() {
 			fi
 		done
 	fi
-
-	log_vars "pre_host_items[@]" "pre_common_items[@]"
 
 	set_pre_items() {
 		local -n arr_ref="$1"
@@ -498,7 +498,7 @@ do_link() {
 			local as_host_item="${as_host_dir}/${item}"
 
 			if [[ -e "$as_home_item" ]]; then
-				log_debug "Backing up $as_home_item..."
+				log_debug "Backup: $as_home_item"
 				backup_item "$as_home_item"
 				rm -rf "$as_home_item"
 			fi
@@ -514,11 +514,11 @@ do_link() {
 			if [[ -d "$actual_item" ]]; then
 				if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
 					renamed_as_home_item="${a_home_dir}/${item#"${HOST_PREFIX}"}"
-					log_debug "Creating directory at \"${LOG_CLR["path"]}$renamed_as_home_item${CLR["reset"]}\"..."
+					log_debug "Create directory: \"${LOG_CLR["path"]}$renamed_as_home_item${CLR["reset"]}\""
 					mkdir "$renamed_as_home_item"
 					do_link "$as_home_item" "$item_type" "$as_home_item"
 				else
-					log_debug "Creating directory at \"${LOG_CLR["path"]}$as_home_item${CLR["reset"]}\"..."
+					log_debug "Create directory: \"${LOG_CLR["path"]}$as_home_item${CLR["reset"]}\""
 					mkdir "$as_home_item"
 					if [[ "$item_type" == "union" ]]; then
 						do_link "$as_home_item"
@@ -534,7 +534,7 @@ do_link() {
 					local original_dir="${basename_#"${HOST_PREFIX}"}"
 					local as_home_item="${a_home_dir%/*}/${original_dir}"
 				fi
-				log_info "New symlink \"${LOG_CLR["path"]}$as_home_item${CLR["reset"]}\" targets \"${LOG_CLR["path"]}$actual_item${CLR["reset"]}\""
+				log_info "New symlink: \"${LOG_CLR["path"]}$as_home_item${CLR["reset"]}\" -> \"${LOG_CLR["path"]}$actual_item${CLR["reset"]}\""
 				ln -sf "$actual_item" "$as_home_item"
 			fi
 		done
@@ -656,11 +656,12 @@ do_setup_arch() {
 
 # Naming "_main" to prevent the log function from logging it as "_GLOBAL_"
 _main() {
+
 	if is_usr_exist "$INSTALL_USER"; then
 		cd "$HOME_DIR"
 		"do_setup_${HOST}"
 	else
-		log_info "Creating a new user ${LOG_CLR["highlight"]}${INSTALL_USER}${CLR["reset"]}..."
+		log_info "Create user: ${LOG_CLR["highlight"]}${INSTALL_USER}${CLR["reset"]}"
 
 		# Update sudo credentials for non-root user
 		if [[ -n "$SUDO" ]]; then
@@ -681,9 +682,8 @@ _main() {
 
 		local run_cmd
 		get_script_run_cmd "$(get_script_path)" "run_cmd"
-		log_vars "run_cmd[@]"
-
 		log_debug "Done user creation. Starting install script as $INSTALL_USER..."
+		log_vars "run_cmd[@]"
 		sudo -u "$INSTALL_USER" -- "${run_cmd[@]}"
 	fi
 }
@@ -692,7 +692,7 @@ log_info "================ Start ${LOG_CLR["highlight"]}$CURRENT_USER${CLR["rese
 if [[ -z "${BASH_SOURCE[0]+x}" ]]; then
 	if [[ "$IS_DEBUG" == "true" ]]; then
 		dev_install_file="$DEV_REPO_DIR/install.sh"
-		log_debug "Copying script from \"${LOG_CLR["path"]}$dev_install_file${CLR["reset"]}\""
+		log_debug "Copying script from \"${LOG_CLR["path"]}$dev_install_file${CLR["reset"]}\"..."
 		set_perm_item "$dev_install_file" "$TMP_INSTALL_SCRIPT_FILE"
 	else
 		log_debug "Downloading script from \"${LOG_CLR["path"]}Git${CLR["reset"]}\" repository..."
