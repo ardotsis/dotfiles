@@ -1,6 +1,6 @@
 @echo off
 
-set "DEV_USERNAME=devuser"
+set "DEV_USERNAME=kana"
 set "IMAGE_NAME=dotfiles-debian"
 set "CONTAINER_NAME=%IMAGE_NAME%-container"
 set "DOCKER_CLI_HINTS=false"

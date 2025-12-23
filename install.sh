@@ -5,9 +5,8 @@ declare -r DEFAULT_USERNAME="ardotsis"
 
 declare -ar _PARAM_0=("--host" "-h" "value" "")
 declare -ar _PARAM_1=("--username" "-u" "value" "$DEFAULT_USERNAME")
-declare -ar _PARAM_2=("--local" "-l" "flag" "false")
-declare -ar _PARAM_3=("--docker" "-d" "flag" "false")
-declare -ar _PARAM_4=("--debug" "-de" "flag" "false")
+declare -ar _PARAM_2=("--docker" "-d" "flag" "false")
+declare -ar _PARAM_3=("--debug" "-de" "flag" "false")
 declare -A _PARAMS=()
 declare -a _ARGS=("$@")
 declare _IS_ARGS_PARSED="false"
@@ -77,43 +76,48 @@ HOST=$(get_arg "host")
 declare -r HOST
 INSTALL_USER=$(get_arg "username")
 declare -r INSTALL_USER
-IS_LOCAL=$(get_arg "local")
-declare -r IS_LOCAL
 IS_DOCKER=$(get_arg "docker")
 declare -r IS_DOCKER
 IS_DEBUG=$(get_arg "debug")
 declare -r IS_DEBUG
 CURRENT_USER="$(whoami)"
 declare -r CURRENT_USER
+
+declare -r HOME_DIR="/home/$INSTALL_USER"
+declare -r TMP_DIR="/var/tmp"
+declare -r REPO_DIRNAME=".dotfiles"
+declare -r DEV_REPO_DIR="$TMP_DIR/${REPO_DIRNAME}_dev"
+declare -r TMP_INSTALL_SCRIPT_FILE="$TMP_DIR/install_dotfiles.sh"
+declare -r GIT_REMOTE_BRANCH="main"
+declare -r HOST_PREFIX="${HOST^^}#"
 declare -Ar HOST_OS=(
 	["vultr"]="debian"
 	["arch"]="arch"
 	["mc"]="ubuntu"
 )
 declare -r OS="${HOST_OS["$HOST"]}"
-declare -r HOST_PREFIX="${HOST^^}_"
-declare -r HOME_DIR="/home/$INSTALL_USER"
-declare -r TMP_DIR="/var/tmp"
-declare -r GIT_REMOTE_BRANCH="main"
-declare -r REPO_DIRNAME=".dotfiles"
-declare -r REPO_DIR="$HOME_DIR/$REPO_DIRNAME"
-declare -r SECRET_FILE="$HOME_DIR/DOTFILES_SECRET_FILE"
-declare -r DOCKER_VOL_DIR="$TMP_DIR/${REPO_DIRNAME}_docker-volume"
-declare -r TMP_INSTALL_SCRIPT_FILE="$TMP_DIR/install_dotfiles.sh"
+declare -r PASSWD_LENGTH=72
 
 declare -A DOTFILES_REPO
-DOTFILES_REPO["src"]="$REPO_DIR/dotfiles"
+DOTFILES_REPO["_dir"]="$HOME_DIR/$REPO_DIRNAME"
+DOTFILES_REPO["src"]="${DOTFILES_REPO["_dir"]}/dotfiles"
 DOTFILES_REPO["common"]="${DOTFILES_REPO["src"]}/common"
 DOTFILES_REPO["host"]="${DOTFILES_REPO["src"]}/hosts/$HOST"
 DOTFILES_REPO["packages"]="${DOTFILES_REPO["src"]}/packages.txt"
 DOTFILES_REPO["template"]="${DOTFILES_REPO["host"]}/.template"
 declare -r DOTFILES_REPO
 
-declare -A SSH
-SSH["etc"]="$HOME_DIR/.ssh"
-SSH["authorized_keys"]="${SSH["etc"]}/authorized_keys"
-SSH["config"]="${SSH["etc"]}/config"
-declare -r SSH
+declare -A APP
+APP["_dir"]="$HOME_DIR/dotfiles-app"
+APP["secret"]="${APP["_dir"]}/DOTFILES_SECRET_FILE"
+APP["backups"]="${APP["_dir"]}/backups"
+declare -A APP
+
+declare -A HOME_SSH
+HOME_SSH["_dir"]="$HOME_DIR/.ssh"
+HOME_SSH["authorized_keys"]="${HOME_SSH["_dir"]}/authorized_keys"
+HOME_SSH["config"]="${HOME_SSH["_dir"]}/config"
+declare -r HOME_SSH
 
 declare -A OPENSSH_SERVER
 OPENSSH_SERVER["etc"]="/etc/ssh"
@@ -128,17 +132,19 @@ IPTABLES["service"]="/etc/systemd/system/iptables-restore.service"
 declare -r IPTABLES
 
 declare -Ar PERMISSION=(
-	# Dotfiles
-	["$SECRET_FILE"]="f $INSTALL_USER $INSTALL_USER 0600"
 	["$TMP_INSTALL_SCRIPT_FILE"]="f root root 0755"
-	# SSH
-	["${SSH["etc"]}"]="d $INSTALL_USER $INSTALL_USER 0700"
-	["${SSH["authorized_keys"]}"]="f $INSTALL_USER $INSTALL_USER 0600"
-	["${SSH["config"]}"]="f $INSTALL_USER $INSTALL_USER 0600"
-	# openssh-server
+
+	["${APP["_dir"]}"]="d $INSTALL_USER $INSTALL_USER 0600"
+	["${APP["secret"]}"]="f $INSTALL_USER $INSTALL_USER 0600"
+	["${APP["backups"]}"]="d $INSTALL_USER $INSTALL_USER 0600"
+
+	["${HOME_SSH["_dir"]}"]="d $INSTALL_USER $INSTALL_USER 0700"
+	["${HOME_SSH["authorized_keys"]}"]="f $INSTALL_USER $INSTALL_USER 0600"
+	["${HOME_SSH["config"]}"]="f $INSTALL_USER $INSTALL_USER 0600"
+
 	["${OPENSSH_SERVER["etc"]}"]="d root root 0755"
 	["${OPENSSH_SERVER["sshd_config"]}"]="f root root 0600"
-	# iptables
+
 	["${IPTABLES["etc"]}"]="d root root 0755"
 	["${IPTABLES["rules_v4"]}"]="f root root 0644"
 	["${IPTABLES["rules_v6"]}"]="f root root 0644"
@@ -176,9 +182,7 @@ declare -Ar LOG_CLR=(
 if [[ "$(id -u)" == "0" ]]; then
 	declare -r SUDO=""
 else
-	if [[ "$OS" == "debian" ]]; then
-		declare -r SUDO="sudo"
-	fi
+	declare -r SUDO="sudo"
 fi
 
 ##################################################
@@ -199,7 +203,7 @@ _log() {
 
 	local timestamp
 	timestamp="$(date "+%Y-%m-%d %H:%M:%S")"
-	printf "[%s] [%b%s%b] [%s] (%s) %b\n" "$timestamp" "${LOG_CLR["${level}"]}" "${level^^}" "${CLR["reset"]}" "$caller" "$CURRENT_USER" "$msg" >&2
+	printf "[%s] [%b%s%b] [%s:%s] (%s) %b\n" "$timestamp" "${LOG_CLR["${level}"]}" "${level^^}" "${CLR["reset"]}" "$caller" "${BASH_LINENO[0]}" "$CURRENT_USER" "$msg" >&2
 }
 log_debug() { _log "debug" "$1"; }
 log_info() { _log "info" "$1"; }
@@ -210,7 +214,7 @@ log_vars() {
 
 	local msg=""
 	for var_name in "${var_names[@]}"; do
-		fmt="${LOG_CLR["var"]}\$$var_name${CLR["reset"]}='${LOG_CLR["value"]}${!var_name}${CLR["reset"]}'"
+		fmt="${LOG_CLR["var"]}\$$var_name${CLR["reset"]}=\"${LOG_CLR["value"]}${!var_name}${CLR["reset"]}\""
 		if [[ -z "$msg" ]]; then
 			msg="$fmt"
 		else
@@ -237,7 +241,6 @@ get_script_run_cmd() {
 		"$INSTALL_USER"
 	)
 	# TODO: Detect flag(s) automatically
-	[[ "$IS_LOCAL" == "true" ]] && arr_ref+=("--local") || true
 	[[ "$IS_DOCKER" == "true" ]] && arr_ref+=("--docker") || true
 	[[ "$IS_DEBUG" == "true" ]] && arr_ref+=("--debug") || true
 }
@@ -262,11 +265,22 @@ is_usr_exist() {
 	fi
 }
 
-get_random_str() {
+_get_random_str() {
 	local length="$1"
+	local chars="$2"
 
 	# Use printf to flush buffer forcefully
-	printf "%s" "$(tr -dc "A-Za-z0-9!?%=" </dev/urandom | head -c "$length")"
+	printf "%s" "$(tr -dc "$chars" </dev/urandom | head -c "$length")"
+}
+
+get_random_str() {
+	local length="$1"
+	_get_random_str "$length" "A-Za-z0-9!?%="
+}
+
+get_safe_random_str() {
+	local length="$1"
+	_get_random_str "$length" "A-Za-z0-9"
 }
 
 install_package() {
@@ -300,10 +314,23 @@ add_user() {
 	fi
 }
 
-set_template() {
+backup_item() {
 	local item_path="$1"
-	local template_path="${2:-}"
-	local file_url="${3:-}"
+
+	local parent_dir basename dst timestamp
+	parent_dir="$(dirname "$item_path")"
+	basename="$(basename "$item_path")"
+	timestamp="$(date "+%Y-%m-%d_%H-%M-%S")"
+	dst="${APP["backups"]}/${basename}_${timestamp}.tgz"
+
+	log_vars "dst" "item_path"
+
+	$SUDO tar czvf "$dst" -C "$parent_dir" "$basename"
+}
+
+set_perm_item() {
+	local template_uri="$1"
+	local item_path="$2"
 
 	read -r -a perm <<<"${PERMISSION[$item_path]}" # TODO: Don't use 'read'
 	local type="${perm[0]}"
@@ -311,27 +338,29 @@ set_template() {
 	local user="${perm[2]}"
 	local num="${perm[3]}"
 
-	if [[ -e "$item_path" ]]; then
-		log_debug "Deleting $item_path..."
-		$SUDO rm -rf "$item_path"
-	fi
-
-	local is_tmp_exist="false"
+	local is_curled="false"
 	local install_cmd=("install" "-m" "$num" "-o" "$user" "-g" "$group")
 
 	if [[ -n "$SUDO" ]]; then
 		install_cmd=("$SUDO" "${install_cmd[@]}")
 	fi
 
-	if [[ -n "$file_url" ]]; then
-		template_path="$TMP_DIR/$(get_random_str 16)"
-		install_cmd=("${install_cmd[@]}" "$template_path" "$item_path")
-		curl -fsSL "$file_url" >"$template_path"
-		is_tmp_exist="true"
+	if [[ -e "$item_path" ]]; then
+		backup_item "$item_path"
+		$SUDO rm -rf "$item_path"
+	fi
+
+	# Source: Internet file
+	if [[ "$template_uri" == "https://"* ]]; then
+		curl_file_path="$TMP_DIR/$(get_random_str 16)"
+		curl -fsSL "$template_uri" >"$curl_file_path"
+		install_cmd=("${install_cmd[@]}" "$curl_file_path" "$item_path")
+		is_curled="true"
+	# Source: Local file
 	else
 		if [[ "$type" == "f" ]]; then
-			if [[ -n "$template_path" ]]; then
-				install_cmd=("${install_cmd[@]}" "$template_path" "$item_path")
+			if [[ -n "$template_uri" ]]; then
+				install_cmd=("${install_cmd[@]}" "$template_uri" "$item_path")
 			else
 				install_cmd=("${install_cmd[@]}" "/dev/null" "$item_path")
 			fi
@@ -340,13 +369,14 @@ set_template() {
 		fi
 	fi
 
+	# Execute "install" command
+	log_debug "Creating \"${LOG_CLR["path"]}$item_path${CLR["reset"]}\"... (template=\"${LOG_CLR["path"]}$template_uri${CLR["reset"]}\" owner=$user, group=$group, mode=$num)"
 	"${install_cmd[@]}"
 
-	if [[ $is_tmp_exist == "true" ]]; then
-		log_debug "Delete tmp file"
-		rm -rf "$template_path"
+	if [[ $is_curled == "true" ]]; then
+		log_debug "Deleting temporary curl file..."
+		rm -rf "$curl_file_path"
 	fi
-	log_debug "Created ${LOG_CLR[path]}'$item_path'${CLR[reset]} (owner=$user, group=$group, mode=$num)"
 }
 
 ##################################################
@@ -357,10 +387,10 @@ clone_dotfiles_repo() {
 		install_package "git"
 	fi
 
-	if [[ "$IS_LOCAL" == "true" ]]; then
-		ln -s "$DOCKER_VOL_DIR" "$REPO_DIR"
+	if [[ "$IS_DEBUG" == "true" ]]; then
+		ln -s "$DEV_REPO_DIR" "${DOTFILES_REPO["_dir"]}"
 	else
-		git clone -b "$GIT_REMOTE_BRANCH" "${URL["dotfiles_repo"]}" "$REPO_DIR"
+		git clone -b "$GIT_REMOTE_BRANCH" "${URL["dotfiles_repo"]}" "${DOTFILES_REPO["_dir"]}"
 	fi
 }
 
@@ -397,12 +427,10 @@ do_link() {
 	local dir_type="${2:-}"
 	local prefix_base="${3:-}"
 
-	log_vars "a_home_dir" "dir_type" "prefix_base"
-
 	local as_host_dir as_common_dir
 	as_host_dir="$(convert_home_path "$a_home_dir" "host")"
 	as_common_dir="$(convert_home_path "$a_home_dir" "common")"
-	log_vars "a_home_dir" "as_host_dir" "as_common_dir"
+	# log_vars "a_home_dir" "as_host_dir" "as_common_dir"
 
 	map_dir_items() {
 		local dir_path="$1"
@@ -424,7 +452,8 @@ do_link() {
 		# Remove host prefixed items from common items
 		for h_i in "${!pre_host_items[@]}"; do
 			local path="${pre_host_items[$h_i]}"
-			local basename_="${path##*/}"
+			local basename_
+			basename_="$(basename "$path")"
 			if [[ "$basename_" == "$HOST_PREFIX"* ]]; then
 				for c_i in "${!pre_common_items[@]}"; do
 					if [[ "${pre_common_items[$c_i]}" == "${basename_#"${HOST_PREFIX}"}" ]]; then
@@ -458,14 +487,21 @@ do_link() {
 		local -n items="${item_type}_items"
 		for item in "${items[@]}"; do
 			if [[ -z "$item" ]]; then
-				log_warn "Empty element in $item_type items"
+				# TODO: "Empty element in $item_type items"
 				continue
 			fi
+
 			local as_home_item="${a_home_dir}/${item}"
 			# shellcheck disable=SC2034
 			local as_common_item="${as_common_dir}/${item}"
 			# shellcheck disable=SC2034
 			local as_host_item="${as_host_dir}/${item}"
+
+			if [[ -e "$as_home_item" ]]; then
+				log_debug "Backing up $as_home_item..."
+				backup_item "$as_home_item"
+				rm -rf "$as_home_item"
+			fi
 
 			if [[ "$item_type" == "union" ]]; then
 				local as_var="as_host_item"
@@ -474,17 +510,15 @@ do_link() {
 			fi
 			local actual_item="${!as_var}"
 
-			log_vars "item_type" "item" "as_var" "actual_item"
-
 			# Directory
 			if [[ -d "$actual_item" ]]; then
 				if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
 					renamed_as_home_item="${a_home_dir}/${item#"${HOST_PREFIX}"}"
-					log_debug "Create directory: '$renamed_as_home_item'"
+					log_debug "Creating directory at \"${LOG_CLR["path"]}$renamed_as_home_item${CLR["reset"]}\"..."
 					mkdir "$renamed_as_home_item"
 					do_link "$as_home_item" "$item_type" "$as_home_item"
 				else
-					log_debug "Create directory: '$as_home_item'"
+					log_debug "Creating directory at \"${LOG_CLR["path"]}$as_home_item${CLR["reset"]}\"..."
 					mkdir "$as_home_item"
 					if [[ "$item_type" == "union" ]]; then
 						do_link "$as_home_item"
@@ -495,13 +529,12 @@ do_link() {
 			# File
 			elif [[ -f "$actual_item" ]]; then
 				if [[ "$item_type" == "host" && -n "$prefix_base" ]]; then
-					log_debug "Rename home link"
 					# TODO cache
 					local basename_="${prefix_base##*/}"
 					local original_dir="${basename_#"${HOST_PREFIX}"}"
 					local as_home_item="${a_home_dir%/*}/${original_dir}"
 				fi
-				log_info "Link ${item_type^^} file: $actual_item -> $as_home_item"
+				log_info "New symlink \"${LOG_CLR["path"]}$as_home_item${CLR["reset"]}\" targets \"${LOG_CLR["path"]}$actual_item${CLR["reset"]}\""
 				ln -sf "$actual_item" "$as_home_item"
 			fi
 		done
@@ -526,19 +559,21 @@ do_setup_vultr() {
 		remove_package "ufw"
 	fi
 
+	set_perm_item "" "${HOME_SSH["_dir"]}"
+
 	# Install files / directories
 	# SSH
-	set_template "${SSH["etc"]}"
-	set_template "${SSH["authorized_keys"]}"
-	set_template "${SSH["config"]}"
+	set_perm_item "" "${HOME_SSH["_dir"]}"
+	set_perm_item "" "${HOME_SSH["authorized_keys"]}"
+	set_perm_item "" "${HOME_SSH["config"]}"
 	# openssh-server
-	set_template "${OPENSSH_SERVER["sshd_config"]}" "${DOTFILES_REPO["template"]}/openssh-server/sshd_config"
+	set_perm_item "${DOTFILES_REPO["template"]}/openssh-server/sshd_config" "${OPENSSH_SERVER["sshd_config"]}"
 	# iptables
 	local tmpl_iptables="${DOTFILES_REPO["template"]}/iptables"
-	set_template "${IPTABLES["etc"]}"
-	set_template "${IPTABLES["rules_v4"]}" "$tmpl_iptables/rules.v4"
-	set_template "${IPTABLES["rules_v6"]}" "$tmpl_iptables/rules.v6"
-	set_template "${IPTABLES["service"]}" "$tmpl_iptables/iptables-restore.service"
+	set_perm_item "" "${IPTABLES["etc"]}"
+	set_perm_item "" "${IPTABLES["rules_v4"]}" "$tmpl_iptables/rules.v4"
+	set_perm_item "$tmpl_iptables/rules.v6" "${IPTABLES["rules_v6"]}"
+	set_perm_item "$tmpl_iptables/iptables-restore.service" "${IPTABLES["service"]}"
 
 	# Change SSH port
 	local ssh_port="$((1024 + RANDOM % (65535 - 1024 + 1)))"
@@ -546,11 +581,11 @@ do_setup_vultr() {
 	$SUDO sed -i "s|^-A INPUT -p tcp --dport [0-9]\+ -j ACCEPT$|-A INPUT -p tcp --dport $ssh_port -j ACCEPT|" "${IPTABLES["rules_v4"]}"
 
 	# Change default shell to Zsh
-	log_info "Change default shell to Zsh"
+	log_info "Changing default shell to Zsh..."
 	$SUDO chsh -s "$(which zsh)" "$(whoami)"
 
 	# Oh My Zsh installation script
-	log_info "Executing oh-my-zsh installation script.."
+	log_info "Executing oh-my-zsh installation script..."
 	sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
 	# Docker installation script
@@ -567,7 +602,7 @@ do_setup_vultr() {
 	else
 		read -r -p "Paste SSH public key: " ssh_publickey </dev/tty
 	fi
-	printf "%s" "$ssh_publickey" >>"${SSH["authorized_keys"]}"
+	printf "%s" "$ssh_publickey" >>"${HOME_SSH["authorized_keys"]}"
 
 	{
 		printf "# Config template for SSH client\n"
@@ -578,20 +613,20 @@ do_setup_vultr() {
 		printf "  IdentityFile ~/.ssh/%s\n" "$HOST"
 		printf "  IdentitiesOnly yes\n"
 		printf "\n"
-	} >>"$SECRET_FILE"
+	} >>"${APP["secret"]}"
 
 	# [ This Host ] --> [ Git ]
 	local ssh_git_passphrase
-	ssh_git_passphrase="$(get_random_str 72)"
+	ssh_git_passphrase="$(get_random_str $PASSWD_LENGTH)"
 	local git_filename="git"
-	ssh-keygen -t ed25519 -b 4096 -f "${SSH["etc"]}/$git_filename" -N "$ssh_git_passphrase"
+	ssh-keygen -t ed25519 -b 4096 -f "${HOME_SSH["_dir"]}/$git_filename" -N "$ssh_git_passphrase"
 
 	{
 		printf "# SSH passphrase for Git\n%s\n\n" "$ssh_git_passphrase"
 		printf "# SSH public key for Git\n"
-		cat "${SSH["etc"]}/$git_filename.pub"
+		cat "${HOME_SSH["_dir"]}/${git_filename}.pub"
 		printf "\n"
-	} >>"$SECRET_FILE"
+	} >>"${APP["secret"]}"
 
 	{
 		printf "Host git\n"
@@ -600,9 +635,9 @@ do_setup_vultr() {
 		printf "  IdentityFile ~/.ssh/%s\n" "$git_filename"
 		printf "  IdentitiesOnly yes\n"
 		printf "\n"
-	} >>"${SSH["config"]}"
+	} >>"${HOME_SSH["config"]}"
 
-	rm -f "${SSH["etc"]}/$git_filename.pub"
+	rm -f "${HOME_SSH["_dir"]}/${git_filename}.pub"
 
 	# Reload services
 	if [[ "$IS_DOCKER" == "false" ]]; then
@@ -619,48 +654,53 @@ do_setup_arch() {
 	log_warn "dotfiles for arch - Not implemented yet.\nExiting..."
 }
 
-# "_main": To prevent the log function from logging it as _GLOBAL_
+# Naming "_main" to prevent the log function from logging it as "_GLOBAL_"
 _main() {
 	if is_usr_exist "$INSTALL_USER"; then
 		cd "$HOME_DIR"
 		"do_setup_${HOST}"
 	else
-		log_info "Creating ${LOG_CLR["highlight"]}${INSTALL_USER}${CLR["reset"]}..."
+		log_info "Creating a new user ${LOG_CLR["highlight"]}${INSTALL_USER}${CLR["reset"]}..."
 
+		# Update sudo credentials for non-root user
 		if [[ -n "$SUDO" ]]; then
 			sudo -v
 		fi
 
+		# Create user
 		local passwd
-		passwd="$(get_random_str 64)"
+		passwd="$(get_random_str $PASSWD_LENGTH)"
 		add_user "$INSTALL_USER" "$passwd"
 
-		log_info "Create secret file on $SECRET_FILE"
-		set_template "$SECRET_FILE"
-		printf "# Do NOT share with others!\n# Delete this file, once you complete the process.\n\n" >>"$SECRET_FILE"
-		printf "# Password for %s\n%s\n\n" "$INSTALL_USER" "$passwd" >>"$SECRET_FILE"
+		# Create app directory
+		set_perm_item "" "${APP["_dir"]}"
+		set_perm_item "" "${APP["backups"]}"
+		set_perm_item "" "${APP["secret"]}"
+		printf "# Do NOT share with others!\n# Delete this file, once you complete the process.\n\n" >>"${APP["secret"]}"
+		printf "# Password for %s\n%s\n\n" "$INSTALL_USER" "$passwd" >>"${APP["secret"]}"
 
 		local run_cmd
 		get_script_run_cmd "$(get_script_path)" "run_cmd"
 		log_vars "run_cmd[@]"
 
-		log_info "Starting install script as $INSTALL_USER"
+		log_debug "Done user creation. Starting install script as $INSTALL_USER..."
 		sudo -u "$INSTALL_USER" -- "${run_cmd[@]}"
 	fi
 }
 
+log_info "================ Start ${LOG_CLR["highlight"]}$CURRENT_USER${CLR["reset"]} session ================"
 if [[ -z "${BASH_SOURCE[0]+x}" ]]; then
-	if [[ "$IS_LOCAL" == "true" ]]; then
-		dev_install_file="$DOCKER_VOL_DIR/install.sh"
-		log_debug "Copying script from ${CLR["yellow"]}$dev_install_file${CLR["reset"]}..."
-		set_template "$TMP_INSTALL_SCRIPT_FILE" "$dev_install_file"
+	if [[ "$IS_DEBUG" == "true" ]]; then
+		dev_install_file="$DEV_REPO_DIR/install.sh"
+		log_debug "Copying script from \"${LOG_CLR["path"]}$dev_install_file${CLR["reset"]}\""
+		set_perm_item "$dev_install_file" "$TMP_INSTALL_SCRIPT_FILE"
 	else
-		log_debug "Downloading script from ${CLR["yellow"]}Git${CLR["reset"]} repository..."
-		set_template "$TMP_INSTALL_SCRIPT_FILE" "" "${URL["dotfiles_install_script"]}"
+		log_debug "Downloading script from \"${LOG_CLR["path"]}Git${CLR["reset"]}\" repository..."
+		set_perm_item "${URL["dotfiles_install_script"]}" "$TMP_INSTALL_SCRIPT_FILE"
 	fi
 
 	get_script_run_cmd "$TMP_INSTALL_SCRIPT_FILE" "run_cmd"
-	log_info "Restarting...\n\n"
+	log_info "Restarting...\n"
 	"${run_cmd[@]}"
 else
 	_main

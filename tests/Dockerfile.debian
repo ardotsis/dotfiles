@@ -10,7 +10,7 @@ RUN apt-get update && \
     git \
     wget \
     neovim \
-    zsh
+    zsh \
 
-# Simulate run script via pipeline (curl)
-CMD ["bash", "-c", "cat $DOTFILES_VOLUME_DIR/install.sh | bash -s -- $INSTALL_SCRIPT_PARAMS"]
+    # Simulate run script via pipeline (curl)
+    CMD ["bash", "-c", "cat $DOTFILES_VOLUME_DIR/install.sh | bash -s -- $INSTALL_SCRIPT_PARAMS"]

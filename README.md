@@ -12,13 +12,13 @@ _simple / minimal / pixel perfect / suckless / secure / free / reproducible / ef
 ### `ardotsis@vultr`
 
 ```sh
-curl -fsSL df.ardotsis.com | bash -s -- -h vultr
+curl -fsSL get.ardotsis.com/df | bash -s -- -h vultr
 ```
 
 ### `ardotsis@arch`
 
 ```sh
-curl -fsSL df.ardotsis.com | bash -s -- -h arch
+curl -fsSL get.ardotsis.com/df | bash -s -- -h arch
 ```
 
 ### Test `install.sh` on Docker (Windows)
