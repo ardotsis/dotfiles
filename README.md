@@ -58,6 +58,10 @@ curl -fsSL get.ardotsis.com/df | bash -s -- -h arch
 
 ## ToDo
 
+- [ ] Logging rules
+  - Use "Verbing..." for only long-running processes
+  - INFO should contain only process flow (and important notices)
+
 - [ ] cloud-init
 
 - [ ] Note daily tools (e.g., Obisidian, LibreWolf)

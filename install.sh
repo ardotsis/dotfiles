@@ -134,9 +134,9 @@ declare -r IPTABLES
 declare -Ar PERMISSION=(
 	["$TMP_INSTALL_SCRIPT_FILE"]="f root root 0755"
 
-	["${APP["_dir"]}"]="d $INSTALL_USER $INSTALL_USER 0600"
+	["${APP["_dir"]}"]="d $INSTALL_USER $INSTALL_USER 0700"
 	["${APP["secret"]}"]="f $INSTALL_USER $INSTALL_USER 0600"
-	["${APP["backups"]}"]="d $INSTALL_USER $INSTALL_USER 0600"
+	["${APP["backups"]}"]="d $INSTALL_USER $INSTALL_USER 0700"
 
 	["${HOME_SSH["_dir"]}"]="d $INSTALL_USER $INSTALL_USER 0700"
 	["${HOME_SSH["authorized_keys"]}"]="f $INSTALL_USER $INSTALL_USER 0600"
@@ -324,7 +324,7 @@ backup_item() {
 	timestamp="$(date "+%Y-%m-%d_%H-%M-%S")"
 	dst="${APP["backups"]}/${basename}_${timestamp}.tgz"
 
-	log_vars "dst" "item_path"
+	log_info "Create backup: \"${LOG_CLR["path"]}$dst${CLR["reset"]}\""
 
 	$SUDO tar czvf "$dst" -C "$parent_dir" "$basename"
 }
@@ -388,6 +388,7 @@ clone_dotfiles_repo() {
 	fi
 
 	if [[ "$IS_DEBUG" == "true" ]]; then
+		log_debug "New debug symlink: \"${LOG_CLR["path"]}${DOTFILES_REPO["_dir"]}${CLR["reset"]}\" -> \"${LOG_CLR["path"]}$DEV_REPO_DIR${CLR["reset"]}\""
 		ln -s "$DEV_REPO_DIR" "${DOTFILES_REPO["_dir"]}"
 	else
 		git clone -b "$GIT_REMOTE_BRANCH" "${URL["dotfiles_repo"]}" "${DOTFILES_REPO["_dir"]}"
@@ -534,7 +535,7 @@ do_link() {
 					local original_dir="${basename_#"${HOST_PREFIX}"}"
 					local as_home_item="${a_home_dir%/*}/${original_dir}"
 				fi
-				log_info "New symlink: \"${LOG_CLR["path"]}$as_home_item${CLR["reset"]}\" -> \"${LOG_CLR["path"]}$actual_item${CLR["reset"]}\""
+				log_info "New symlink: \"${LOG_CLR["path"]}$as_home_item${CLR["reset"]}\" -> (${item_type^^}) \"${LOG_CLR["path"]}$actual_item${CLR["reset"]}\""
 				ln -sf "$actual_item" "$as_home_item"
 			fi
 		done
@@ -545,16 +546,16 @@ do_link() {
 #                   Installers                   #
 ##################################################
 do_setup_vultr() {
-	log_info "Start setup vultr"
-
-	# Do common installations
+	log_info "Clone dotfiles repository"
 	clone_dotfiles_repo
+	log_info "Start linking dotfiles"
 	do_link
+	log_info "Install packages"
 	install_listed_packages
 
 	# Uninstall UFW
 	if is_cmd_exist ufw; then
-		log_info "Uninstalling UFW..."
+		log_info "Uninstall UFW"
 		$SUDO ufw disable
 		remove_package "ufw"
 	fi
@@ -581,7 +582,7 @@ do_setup_vultr() {
 	$SUDO sed -i "s|^-A INPUT -p tcp --dport [0-9]\+ -j ACCEPT$|-A INPUT -p tcp --dport $ssh_port -j ACCEPT|" "${IPTABLES["rules_v4"]}"
 
 	# Change default shell to Zsh
-	log_info "Changing default shell to Zsh..."
+	log_info "Change default shell to Zsh"
 	$SUDO chsh -s "$(which zsh)" "$(whoami)"
 
 	# Oh My Zsh installation script
@@ -641,21 +642,22 @@ do_setup_vultr() {
 
 	# Reload services
 	if [[ "$IS_DOCKER" == "false" ]]; then
-		log_info "Restarting sshd..."
+		log_info "Restart sshd service"
 		$SUDO systemctl restart sshd
-		log_info "Reloading systemctl daemon..."
+		log_info "Reload systemctl daemon"
 		$SUDO systemctl daemon-reload
-		log_info "Enabling iptables-restore service..."
+		log_info "Enable iptables-restore service"
 		$SUDO systemctl enable iptables-restore.service
 	fi
 }
 
 do_setup_arch() {
-	log_warn "dotfiles for arch - Not implemented yet.\nExiting..."
+	log_warn "dotfiles for arch - Not implemented yet"
 }
 
 # Naming "_main" to prevent the log function from logging it as "_GLOBAL_"
 _main() {
+	log_vars "HOST" "INSTALL_USER" "CURRENT_USER" "IS_DOCKER" "IS_DEBUG"
 
 	if is_usr_exist "$INSTALL_USER"; then
 		cd "$HOME_DIR"
@@ -682,20 +684,21 @@ _main() {
 
 		local run_cmd
 		get_script_run_cmd "$(get_script_path)" "run_cmd"
-		log_debug "Done user creation. Starting install script as $INSTALL_USER..."
+		log_info "Done user creation. Starting install script as ${LOG_CLR["highlight"]}$INSTALL_USER${CLR["reset"]}..."
 		log_vars "run_cmd[@]"
 		sudo -u "$INSTALL_USER" -- "${run_cmd[@]}"
 	fi
 }
 
-log_info "================ Start ${LOG_CLR["highlight"]}$CURRENT_USER${CLR["reset"]} session ================"
+log_debug "================ Begin ${LOG_CLR["highlight"]}$CURRENT_USER${CLR["reset"]} session ================"
 if [[ -z "${BASH_SOURCE[0]+x}" ]]; then
+	log_info "Download script"
 	if [[ "$IS_DEBUG" == "true" ]]; then
 		dev_install_file="$DEV_REPO_DIR/install.sh"
-		log_debug "Copying script from \"${LOG_CLR["path"]}$dev_install_file${CLR["reset"]}\"..."
+		log_debug "Copy script from \"${LOG_CLR["path"]}$dev_install_file${CLR["reset"]}\""
 		set_perm_item "$dev_install_file" "$TMP_INSTALL_SCRIPT_FILE"
 	else
-		log_debug "Downloading script from \"${LOG_CLR["path"]}Git${CLR["reset"]}\" repository..."
+		log_debug "Download script from \"${LOG_CLR["path"]}Git${CLR["reset"]}\" repository"
 		set_perm_item "${URL["dotfiles_install_script"]}" "$TMP_INSTALL_SCRIPT_FILE"
 	fi
 
@@ -709,3 +712,4 @@ else
 		tail -f /dev/null
 	fi
 fi
+log_debug "================ End ${LOG_CLR["highlight"]}$CURRENT_USER${CLR["reset"]} session ================"
