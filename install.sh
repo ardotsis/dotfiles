@@ -1,10 +1,8 @@
 #!/bin/bash
 set -e -u -o pipefail -C
 
-declare -r DEFAULT_USERNAME="ardotsis"
-
 declare -ar _PARAM_0=("--host" "-h" "value" "")
-declare -ar _PARAM_1=("--username" "-u" "value" "$DEFAULT_USERNAME")
+declare -ar _PARAM_1=("--username" "-u" "value" "ardotsis")
 declare -ar _PARAM_2=("--docker" "-d" "flag" "false")
 declare -ar _PARAM_3=("--debug" "-de" "flag" "false")
 declare -A _PARAMS=()
@@ -97,6 +95,7 @@ declare -Ar HOST_OS=(
 )
 declare -r OS="${HOST_OS["$HOST"]}"
 declare -r PASSWD_LENGTH=72
+declare -r SCRIPT_NAME="${BASH_SOURCE[0]+x}"
 
 declare -A DOTFILES_REPO
 DOTFILES_REPO["_dir"]="$HOME_DIR/$REPO_DIRNAME"
@@ -108,8 +107,9 @@ DOTFILES_REPO["template"]="${DOTFILES_REPO["host"]}/.template"
 declare -r DOTFILES_REPO
 
 declare -A APP
-APP["_dir"]="$HOME_DIR/dotfiles-app"
-APP["secret"]="${APP["_dir"]}/DOTFILES_SECRET_FILE"
+APP["_dir"]="$HOME_DIR/dotfiles-data"
+APP["log"]="${APP["_dir"]}/log"
+APP["secret"]="${APP["_dir"]}/secret"
 APP["backups"]="${APP["_dir"]}/backups"
 declare -A APP
 
@@ -135,6 +135,7 @@ declare -Ar PERMISSION=(
 	["$TMP_INSTALL_SCRIPT_FILE"]="f root root 0755"
 
 	["${APP["_dir"]}"]="d $INSTALL_USER $INSTALL_USER 0700"
+	["${APP["log"]}"]="f $INSTALL_USER $INSTALL_USER 0600"
 	["${APP["secret"]}"]="f $INSTALL_USER $INSTALL_USER 0600"
 	["${APP["backups"]}"]="d $INSTALL_USER $INSTALL_USER 0700"
 
@@ -192,19 +193,24 @@ _log() {
 	local level="$1"
 	local msg="$2"
 
-	# TODO: fix lineno
+	local i=0
+	local lineno=0
 	local caller="_GLOBAL_"
 	for funcname in "${FUNCNAME[@]}"; do
+		i=$((i + 1))
 		[[ "$funcname" == "_log" ]] && continue
 		[[ "$funcname" == "log_"* ]] && continue
 		[[ "$funcname" == "main" ]] && continue
 		caller="$funcname"
+		lineno="${BASH_LINENO[$((i - 2))]}"
 		break
 	done
 
 	local timestamp
 	timestamp="$(date "+%Y-%m-%d %H:%M:%S")"
-	printf "[%s] [%b%s%b] [%s:%s] (%s) %b\n" "$timestamp" "${LOG_CLR["${level}"]}" "${level^^}" "${CLR["reset"]}" "$caller" "${BASH_LINENO[0]}" "$CURRENT_USER" "$msg" >&2
+	printf "[%s] [%b%s%b] [%s:%s] (%s) %b\n" "$timestamp" "${LOG_CLR["${level}"]}" "${level^^}" "${CLR["reset"]}" "$caller" "$lineno" "$CURRENT_USER" "$msg" >&2
+	# TODO:
+	# printf "[%s] [%s] [%s:%s] (%s) %b\n" "$timestamp" "${level^^}" "$caller" "$lineno" "$CURRENT_USER" "$msg" >>"${APP["log"]}"
 }
 log_debug() { _log "debug" "$1"; }
 log_info() { _log "info" "$1"; }
@@ -244,6 +250,8 @@ get_script_run_cmd() {
 	# TODO: Detect flag(s) automatically
 	[[ "$IS_DOCKER" == "true" ]] && arr_ref+=("--docker") || true
 	[[ "$IS_DEBUG" == "true" ]] && arr_ref+=("--debug") || true
+
+	log_vars "arr_ref[@]"
 }
 
 is_cmd_exist() {
@@ -322,10 +330,9 @@ backup_item() {
 	parent_dir="$(dirname "$item_path")"
 	basename="$(basename "$item_path")"
 	timestamp="$(date "+%Y-%m-%d_%H-%M-%S")"
-	dst="${APP["backups"]}/${basename}_${timestamp}.tgz"
+	dst="${APP["backups"]}/${basename}.${timestamp}.tgz"
 
 	log_info "Create backup: \"${LOG_CLR["path"]}$dst${CLR["reset"]}\""
-
 	$SUDO tar czvf "$dst" -C "$parent_dir" "$basename"
 }
 
@@ -379,9 +386,6 @@ set_perm_item() {
 	fi
 }
 
-##################################################
-#                    Scripts                     #
-##################################################
 clone_dotfiles_repo() {
 	if ! is_cmd_exist git; then
 		install_package "git"
@@ -487,10 +491,7 @@ do_link() {
 	for item_type in "union" "host" "common"; do
 		local -n items="${item_type}_items"
 		for item in "${items[@]}"; do
-			if [[ -z "$item" ]]; then
-				# TODO: "Empty element in $item_type items"
-				continue
-			fi
+			[[ -z "$item" ]] && continue
 
 			local as_home_item="${a_home_dir}/${item}"
 			# shellcheck disable=SC2034
@@ -655,9 +656,28 @@ do_setup_arch() {
 	log_warn "dotfiles for arch - Not implemented yet"
 }
 
-# Naming "_main" to prevent the log function from logging it as "_GLOBAL_"
-_main() {
+# "main_": Prevent the log function from logging it as "_GLOBAL_"
+main_() {
+	local session_id
+	session_id="$(get_safe_random_str 4)"
+	log_debug "================ Begin ${LOG_CLR["highlight"]}${CURRENT_USER} (${session_id})${CLR["reset"]} session ================"
 	log_vars "HOST" "INSTALL_USER" "CURRENT_USER" "IS_DOCKER" "IS_DEBUG"
+
+	# Download script
+	if [[ -z "$SCRIPT_NAME" ]]; then
+		if [[ "$IS_DEBUG" == "true" ]]; then
+			log_debug "Copy script from \"${CLR["yellow"]}${DEV_REPO_DIR}/install.sh${CLR["reset"]}\""
+			set_perm_item $DEV_REPO_DIR/install.sh "$TMP_INSTALL_SCRIPT_FILE"
+		else
+			log_debug "Download script from ${CLR["yellow"]}${URL["dotfiles_install_script"]}${CLR["reset"]}"
+			set_perm_item "${URL["dotfiles_install_script"]}" "$TMP_INSTALL_SCRIPT_FILE"
+		fi
+
+		get_script_run_cmd "$TMP_INSTALL_SCRIPT_FILE" "run_cmd"
+		log_info "Exit and restarting..."
+		"${run_cmd[@]}"
+		exit 0
+	fi
 
 	if is_usr_exist "$INSTALL_USER"; then
 		cd "$HOME_DIR"
@@ -685,31 +705,16 @@ _main() {
 		local run_cmd
 		get_script_run_cmd "$(get_script_path)" "run_cmd"
 		log_info "Done user creation. Starting install script as ${LOG_CLR["highlight"]}$INSTALL_USER${CLR["reset"]}..."
-		log_vars "run_cmd[@]"
 		sudo -u "$INSTALL_USER" -- "${run_cmd[@]}"
-	fi
-}
-
-log_debug "================ Begin ${LOG_CLR["highlight"]}$CURRENT_USER${CLR["reset"]} session ================"
-if [[ -z "${BASH_SOURCE[0]+x}" ]]; then
-	log_info "Download script"
-	if [[ "$IS_DEBUG" == "true" ]]; then
-		dev_install_file="$DEV_REPO_DIR/install.sh"
-		log_debug "Copy script from \"${LOG_CLR["path"]}$dev_install_file${CLR["reset"]}\""
-		set_perm_item "$dev_install_file" "$TMP_INSTALL_SCRIPT_FILE"
-	else
-		log_debug "Download script from \"${LOG_CLR["path"]}Git${CLR["reset"]}\" repository"
-		set_perm_item "${URL["dotfiles_install_script"]}" "$TMP_INSTALL_SCRIPT_FILE"
+		# exit 0
 	fi
 
-	get_script_run_cmd "$TMP_INSTALL_SCRIPT_FILE" "run_cmd"
-	log_info "Restarting...\n"
-	"${run_cmd[@]}"
-else
-	_main
 	if [[ "$IS_DOCKER" == "true" ]]; then
 		log_info "Docker mode is enabled. Keeping docker container running..."
 		tail -f /dev/null
 	fi
-fi
-log_debug "================ End ${LOG_CLR["highlight"]}$CURRENT_USER${CLR["reset"]} session ================"
+
+	log_debug "================ End ${LOG_CLR["highlight"]}${CURRENT_USER} (${session_id})${CLR["reset"]} session ================"
+}
+
+main_
