@@ -392,7 +392,7 @@ set_perm_item() {
 	fi
 
 	# Execute "install" command
-	log_debug "Create item: \"${LOG_CLR["path"]}$item_path${CLR["reset"]}\" (template=\"${LOG_CLR["path"]}$template_uri${CLR["reset"]}\" owner=$user, group=$group, mode=$num)"
+	log_info "Create item: \"${LOG_CLR["path"]}$item_path${CLR["reset"]}\" (template=\"${LOG_CLR["path"]}$template_uri${CLR["reset"]}\" owner=$user, group=$group, mode=$num)"
 	"${install_cmd[@]}"
 
 	if [[ $is_curled == "true" ]]; then
@@ -587,7 +587,7 @@ do_setup_vultr() {
 	# iptables
 	local tmpl_iptables="${DOTFILES_REPO["template"]}/iptables"
 	set_perm_item "" "${IPTABLES["etc"]}"
-	set_perm_item "" "${IPTABLES["rules_v4"]}" "$tmpl_iptables/rules.v4"
+	set_perm_item "$tmpl_iptables/rules.v4" "${IPTABLES["rules_v4"]}"
 	set_perm_item "$tmpl_iptables/rules.v6" "${IPTABLES["rules_v6"]}"
 	set_perm_item "$tmpl_iptables/iptables-restore.service" "${IPTABLES["service"]}"
 
