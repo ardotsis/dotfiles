@@ -194,15 +194,15 @@ _log() {
 	local msg="$2"
 
 	local i=0
-	local lineno=0
-	local caller="_GLOBAL_"
+	local lineno="${BASH_LINENO[1]}"
+	local caller=" <GLOBAL> "
 	for funcname in "${FUNCNAME[@]}"; do
 		i=$((i + 1))
 		[[ "$funcname" == "_log" ]] && continue
 		[[ "$funcname" == "log_"* ]] && continue
 		[[ "$funcname" == "main" ]] && continue
-		caller="$funcname"
 		lineno="${BASH_LINENO[$((i - 2))]}"
+		caller="$funcname"
 		break
 	done
 
@@ -230,6 +230,20 @@ log_vars() {
 	done
 
 	_log "debug" "$msg"
+}
+
+get_clr_str() {
+	local msg="$1"
+	local clr="$2"
+	local with_quote="${3-:}"
+
+	if [[ "$with_quote" == "true" ]]; then
+		local q='"'
+	else
+		local q=''
+	fi
+
+	printf "%b" "${q}${clr}${msg}${CLR["reset"]}${q}"
 }
 
 get_script_path() {
@@ -332,7 +346,7 @@ backup_item() {
 	timestamp="$(date "+%Y-%m-%d_%H-%M-%S")"
 	dst="${APP["backups"]}/${basename}.${timestamp}.tgz"
 
-	log_info "Create backup: \"${LOG_CLR["path"]}$dst${CLR["reset"]}\""
+	log_info "Create backup: $(get_clr_str "$dst" "${LOG_CLR["path"]}" "true")"
 	$SUDO tar czvf "$dst" -C "$parent_dir" "$basename"
 }
 
@@ -660,7 +674,7 @@ do_setup_arch() {
 main_() {
 	local session_id
 	session_id="$(get_safe_random_str 4)"
-	log_debug "================ Begin ${LOG_CLR["highlight"]}${CURRENT_USER} (${session_id})${CLR["reset"]} session ================"
+	log_debug "================ Begin $(get_clr_str "$CURRENT_USER ($session_id)" "${LOG_CLR["highlight"]}") session ================"
 	log_vars "HOST" "INSTALL_USER" "CURRENT_USER" "IS_DOCKER" "IS_DEBUG"
 
 	# Download script
@@ -704,9 +718,9 @@ main_() {
 
 		local run_cmd
 		get_script_run_cmd "$(get_script_path)" "run_cmd"
-		log_info "Done user creation. Starting install script as ${LOG_CLR["highlight"]}$INSTALL_USER${CLR["reset"]}..."
+		log_info "Done user creation. Exit and starting install script as ${LOG_CLR["highlight"]}$INSTALL_USER${CLR["reset"]}..."
 		sudo -u "$INSTALL_USER" -- "${run_cmd[@]}"
-		# exit 0
+		exit 0
 	fi
 
 	if [[ "$IS_DOCKER" == "true" ]]; then
@@ -714,7 +728,7 @@ main_() {
 		tail -f /dev/null
 	fi
 
-	log_debug "================ End ${LOG_CLR["highlight"]}${CURRENT_USER} (${session_id})${CLR["reset"]} session ================"
+	log_debug "================ End $(get_clr_str "$CURRENT_USER ($session_id)" "${LOG_CLR["highlight"]}") session ================"
 }
 
 main_
