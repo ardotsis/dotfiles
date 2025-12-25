@@ -3,7 +3,7 @@
 <h1 align="center">ar.sis's dotfiles</h1>
 
 <p align="center">
-  <img src="docs/girl.webp" alt="girl" width="500">
+  <img src="docs/girl.webp" alt="girl" width="400">
 </p>
 
 <p align="center">
