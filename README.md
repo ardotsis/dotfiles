@@ -9,7 +9,7 @@
 <p align="center">
   <em>
     hey, ar.sis, it's ok! your isolated home is here.
-    <br><br>
+    <br>
     simple / minimal / pixel perfect / suckless / secure / free / reproducible / efficient / unique / kawaii / menhera
   </em>
 </p>
