@@ -1,16 +1,17 @@
-<p align="center">
-  <h1 align="center">ar.sis's dotfiles</h1>
-</p>
+<a id="top"></a>
+
+<h1 align="center">ar.sis's dotfiles</h1>
 
 <p align="center">
   <img src="docs/girl.webp" alt="girl" width="300">
 </p>
 
 <p align="center">
-hey, ar.sis, it's ok! your isolated home is here.
-
-simple / minimal / pixel perfect / suckless / secure / free / reproducible / efficient / unique / kawaii / menhera
-
+  <em>
+    hey, ar.sis, it's ok! your isolated home is here.
+    <br><br>
+    simple / minimal / pixel perfect / suckless / secure / free / reproducible / efficient / unique / kawaii / menhera
+  </em>
 </p>
 
 > [!WARNING]
