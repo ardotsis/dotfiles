@@ -1,5 +1,3 @@
-<a id="top"></a>
-
 <h1 align="center">ar.sis's dotfiles</h1>
 
 <p align="center">
@@ -13,6 +11,8 @@
     simple / minimal / pixel perfect / suckless / secure / free / reproducible / efficient / unique / kawaii / menhera
   </em>
 </p>
+
+<div style="height: 40px;"></div>
 
 > [!WARNING]
 > This project is still work in progress. So please do not expect to work. Thank you 🩷
