@@ -95,7 +95,6 @@ declare -Ar HOST_OS=(
 )
 declare -r OS="${HOST_OS["$HOST"]}"
 declare -r PASSWD_LENGTH=72
-declare -r SCRIPT_NAME="${BASH_SOURCE[0]+x}"
 
 declare -A DOTFILES_REPO
 DOTFILES_REPO["_dir"]="$HOME_DIR/$REPO_DIRNAME"
@@ -449,7 +448,7 @@ do_link() {
 	local as_host_dir as_common_dir
 	as_host_dir="$(convert_home_path "$a_home_dir" "host")"
 	as_common_dir="$(convert_home_path "$a_home_dir" "common")"
-	# log_vars "a_home_dir" "as_host_dir" "as_common_dir"
+	# log_vars "a_home_dir" "as_host_dir" "as_common_dir"j
 
 	map_dir_items() {
 		local dir_path="$1"
@@ -731,4 +730,48 @@ main_() {
 	log_debug "================ End $(get_clr_str "$CURRENT_USER ($session_id)" "${LOG_CLR["highlight"]}") session ================"
 }
 
-main_
+# main_
+
+# ======================== TEST ========================
+
+get_items() {
+	local dir_path="$1"
+	# shellcheck disable=SC2178
+	local -n result_arr_name="$2"
+
+	# shellcheck disable=SC2034
+	mapfile -d $'\0' result_arr_name < \
+		<(find "$dir_path" -mindepth 1 -maxdepth 1 -printf "%f\0")
+}
+
+get_mixed_items() {
+	local -n primary_arr_name="$1"
+	local -n secondary_arr_name="$2"
+	local mode="$3"
+	# shellcheck disable=SC2178
+	local -n result_arr_name="$4"
+
+	# shellcheck disable=SC2034
+	mapfile -d $'\0' result_arr_name < <(comm "$mode" -z \
+		<(printf "%s\0" "${primary_arr_name[*]}" | sort -z) \
+		<(printf "%s\0" "${secondary_arr_name[*]}" | sort -z))
+}
+
+testmain() {
+	# shellcheck disable=SC2034
+	local pre_host_items pre_common_items
+	get_items "${DEV_REPO_DIR}/dotfiles/hosts/vultr" "pre_host_items"
+	get_items "${DEV_REPO_DIR}/dotfiles/common" "pre_common_items"
+
+	local host_items
+	get_mixed_items "pre_host_items" "pre_common_items" "-23" "host_items"
+
+	echo "${host_items[*]}"
+}
+
+testmain
+
+link() {
+	local
+
+}

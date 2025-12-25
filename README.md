@@ -1,8 +1,17 @@
-# ar.sis's dotfiles
+<p align="center">
+  <h1 align="center">ar.sis's dotfiles</h1>
+</p>
 
+<p align="center">
+  <img src="docs/girl.webp" alt="girl" width="300">
+</p>
+
+<p align="center">
 hey, ar.sis, it's ok! your isolated home is here.
 
-_simple / minimal / pixel perfect / suckless / secure / free / reproducible / efficient / unique / kawaii / menhera_
+simple / minimal / pixel perfect / suckless / secure / free / reproducible / efficient / unique / kawaii / menhera
+
+</p>
 
 > [!WARNING]
 > This project is still work in progress. So please do not expect to work. Thank you 🩷
@@ -58,6 +67,13 @@ curl -fsSL get.ardotsis.com/df | bash -s -- -h arch
 
 ## ToDo
 
+- [ ] Fuck SNS
+  - X
+  - Twitch
+  - Instagram
+  - TikTok
+  - Others
+
 - [ ] Logging rules
   - Use "Verbing..." for only long-running processes
   - INFO should contain only process flow (and important notices)
@@ -90,3 +106,5 @@ curl -fsSL get.ardotsis.com/df | bash -s -- -h arch
 
 - [ ] See this. (ar.sis only)
   - <https://github.com/ardotsis/dotfiles-old>
+- [ ] VSCode extension list
+  - [ ] automate install
