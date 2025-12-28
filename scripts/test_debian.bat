@@ -24,7 +24,6 @@ if "%FLAG%"=="--cleanup" (
   for /f "tokens=*" %%i in ('docker ps -aq --filter "name=%CONTAINER_NAME%"') do (
     docker rm -f %%i
   )
-  echo.
 )
 
 if "%FLAG%"=="--build" (
@@ -36,9 +35,9 @@ if "%FLAG%"=="--build" (
   )
   echo Cleaning up build history...
   docker buildx history rm --all
-  echo.
 )
 
+echo =============== Begin Docker Session ===============
 docker run ^
 --rm ^
 --interactive ^

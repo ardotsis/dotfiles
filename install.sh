@@ -70,8 +70,8 @@ get_arg() {
 	printf %s "${_PARAMS[$name]}"
 }
 
-HOST=$(get_arg "host")
-declare -r HOST
+HOSTNAME=$(get_arg "host")
+declare -r HOSTNAME
 INSTALL_USER=$(get_arg "username")
 declare -r INSTALL_USER
 IS_DOCKER=$(get_arg "docker")
@@ -87,20 +87,20 @@ declare -r REPO_DIRNAME=".dotfiles"
 declare -r DEV_REPO_DIR="$TMP_DIR/${REPO_DIRNAME}_dev"
 declare -r TMP_INSTALL_SCRIPT_FILE="$TMP_DIR/install_dotfiles.sh"
 declare -r GIT_REMOTE_BRANCH="main"
-declare -r HOST_PREFIX="${HOST^^}#"
+declare -r HOST_PREFIX="${HOSTNAME^^}##"
 declare -Ar HOST_OS=(
 	["vultr"]="debian"
 	["arch"]="arch"
 	["mc"]="ubuntu"
 )
-declare -r OS="${HOST_OS["$HOST"]}"
+declare -r OS="${HOST_OS["$HOSTNAME"]}"
 declare -r PASSWD_LENGTH=72
 
 declare -A DOTFILES_REPO
 DOTFILES_REPO["_dir"]="$HOME_DIR/$REPO_DIRNAME"
 DOTFILES_REPO["src"]="${DOTFILES_REPO["_dir"]}/dotfiles"
 DOTFILES_REPO["common"]="${DOTFILES_REPO["src"]}/common"
-DOTFILES_REPO["host"]="${DOTFILES_REPO["src"]}/hosts/$HOST"
+DOTFILES_REPO["host"]="${DOTFILES_REPO["src"]}/hosts/$HOSTNAME"
 DOTFILES_REPO["packages"]="${DOTFILES_REPO["src"]}/packages.txt"
 DOTFILES_REPO["template"]="${DOTFILES_REPO["host"]}/.template"
 declare -r DOTFILES_REPO
@@ -256,7 +256,7 @@ get_script_run_cmd() {
 	arr_ref=(
 		"$script_path"
 		"--host"
-		"$HOST"
+		"$HOSTNAME"
 		"--username"
 		"$INSTALL_USER"
 	)
@@ -621,11 +621,11 @@ do_setup_vultr() {
 
 	{
 		printf "# Config template for SSH client\n"
-		printf "Host %s\n" "$HOST"
+		printf "Host %s\n" "$HOSTNAME"
 		printf "  HostName %s\n" "$(curl -fsSL https://api.ipify.org)"
 		printf "  Port %s\n" "$ssh_port"
 		printf "  User %s\n" "$INSTALL_USER"
-		printf "  IdentityFile ~/.ssh/%s\n" "$HOST"
+		printf "  IdentityFile ~/.ssh/%s\n" "$HOSTNAME"
 		printf "  IdentitiesOnly yes\n"
 		printf "\n"
 	} >>"${APP["secret"]}"
@@ -674,7 +674,7 @@ main_() {
 	local session_id
 	session_id="$(get_safe_random_str 4)"
 	log_debug "================ Begin $(get_clr_str "$CURRENT_USER ($session_id)" "${LOG_CLR["highlight"]}") session ================"
-	log_vars "HOST" "INSTALL_USER" "CURRENT_USER" "IS_DOCKER" "IS_DEBUG"
+	log_vars "HOSTNAME" "INSTALL_USER" "CURRENT_USER" "IS_DOCKER" "IS_DEBUG"
 
 	# Download script
 	if [[ -z "$SCRIPT_NAME" ]]; then
@@ -694,7 +694,7 @@ main_() {
 
 	if is_usr_exist "$INSTALL_USER"; then
 		cd "$HOME_DIR"
-		"do_setup_${HOST}"
+		"do_setup_${HOSTNAME}"
 	else
 		log_info "Create user: ${LOG_CLR["highlight"]}${INSTALL_USER}${CLR["reset"]}"
 
@@ -745,33 +745,116 @@ get_items() {
 }
 
 get_mixed_items() {
-	local -n primary_arr_name="$1"
-	local -n secondary_arr_name="$2"
+	# todo: arr1 arr2
+	local -n arr_name_1="$1"
+	local -n arr_name_2="$2"
 	local mode="$3"
 	# shellcheck disable=SC2178
 	local -n result_arr_name="$4"
 
 	# shellcheck disable=SC2034
 	mapfile -d $'\0' result_arr_name < <(comm "$mode" -z \
-		<(printf "%s\0" "${primary_arr_name[*]}" | sort -z) \
-		<(printf "%s\0" "${secondary_arr_name[*]}" | sort -z))
+		<(printf "%s\0" "${arr_name_1[@]}" | sort -z) \
+		<(printf "%s\0" "${arr_name_2[@]}" | sort -z))
 }
 
-testmain() {
+testlink() {
+	local base_dir="$1"
+	local host_dir="${2:-}" # Preferred
+	local default_dir="${3:-}"
+
+	log_debug "Base: ${LOG_CLR["path"]}$base_dir${CLR["reset"]}"
+
 	# shellcheck disable=SC2034
-	local pre_host_items pre_common_items
-	get_items "${DEV_REPO_DIR}/dotfiles/hosts/vultr" "pre_host_items"
-	get_items "${DEV_REPO_DIR}/dotfiles/common" "pre_common_items"
+	local pre_host_items=() pre_default_items=()
+	[[ -z "$host_dir" ]] || get_items "$host_dir" "pre_host_items"
+	[[ -z "$default_dir" ]] || get_items "$default_dir" "pre_default_items"
 
-	local host_items
-	get_mixed_items "pre_host_items" "pre_common_items" "-23" "host_items"
+	# shellcheck disable=SC2034
+	local union_items=() host_items=() default_items=()
+	if [[ -n "$host_dir" && -n "$default_dir" ]]; then
+		get_mixed_items "pre_host_items" "pre_default_items" "-12" "union_items"
+		get_mixed_items "pre_host_items" "pre_default_items" "-23" "host_items"
+		get_mixed_items "pre_host_items" "pre_default_items" "-13" "default_items"
 
-	echo "${host_items[*]}"
+		# Remove host's prefixed items from secondary array
+		local -A default_item_map
+		for item in "${default_items[@]}"; do
+			# shellcheck disable=SC2034
+			default_item_map["$item"]="0"
+		done
+
+		for host_item in "${pre_host_items[@]}"; do
+			if [[ $host_item == "$HOST_PREFIX"* ]]; then
+				unset "default_item_map[""${host_item#"$HOST_PREFIX"}""]"
+				log_debug "Unset $host_item from default items"
+			fi
+		done
+
+		default_items=("${!default_item_map[@]}")
+
+	elif [[ -n "$host_dir" ]]; then
+		local host_items="${pre_host_items[*]}"
+	elif [[ -n "$default_dir" ]]; then
+		local default_items="${pre_default_items[*]}"
+	fi
+
+	for item_type in "union" "host" "default"; do
+		local -n items="${item_type}_items"
+		if [[ "$item_type" == "union" ]]; then
+			local as_var="as_host_item"
+		else
+			# default, host
+			local as_var="as_${item_type}_item"
+		fi
+
+		for item in "${items[@]}"; do
+			[[ -z "$item" ]] && continue
+
+			local as_base_item="${base_dir}/${item}"
+			# shellcheck disable=SC2034
+			local as_host_item="${host_dir}/${item}"
+			# shellcheck disable=SC2034
+			local as_default_item="${default_dir}/${item}"
+
+			# Backup
+			if [[ -e "$as_base_item" ]]; then
+				log_debug "Backup: $as_base_item"
+				backup_item "$as_base_item"
+				rm -rf "$as_base_item"
+			fi
+
+			# Get actual item path (if "union" prefer "host" item)
+			if [[ "$item_type" == "union" || "$item_type" == "host" ]]; then
+				local as_var="as_host_item"
+			else
+				local as_var="as_default_item"
+			fi
+			local actual="${!as_var}"
+
+			# $item= HOST##.config -> .config
+			if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
+				as_base_item="${base_dir}/${item#"${HOST_PREFIX}"}"
+			fi
+
+			if [[ -d "$actual" ]]; then
+				log_debug "Create directory: \"${LOG_CLR["path"]}$as_base_item${CLR["reset"]}\""
+				mkdir "$as_base_item"
+				log_debug "$item_type"
+				if [[ "$item_type" == "union" ]]; then
+					testlink "$as_base_item"
+				elif [[ "$item_type" == "host" ]]; then
+					testlink "$as_base_item" "$as_host_item"
+				elif [[ "$item_type" == "default" ]]; then
+					testlink "$as_base_item" "" "$as_default_item"
+				fi
+			elif [[ -f "$actual" ]]; then
+				log_info "New symlink: \"${LOG_CLR["path"]}$as_base_item${CLR["reset"]}\" -> (${item_type^^}) \"${LOG_CLR["path"]}$actual${CLR["reset"]}\""
+				ln -sf "${!as_var}" "$as_base_item"
+			fi
+		done
+	done
 }
 
-testmain
-
-link() {
-	local
-
-}
+mkdir /fake-home
+testlink "/fake-home" "${DEV_REPO_DIR}/dotfiles/hosts/vultr" "${DEV_REPO_DIR}/dotfiles/common"
