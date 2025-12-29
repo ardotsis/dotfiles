@@ -857,3 +857,5 @@ testlink() {
 
 mkdir /fake-home
 testlink "/fake-home" "${DEV_REPO_DIR}/dotfiles/hosts/vultr" "${DEV_REPO_DIR}/dotfiles/common"
+log_info "Docker mode is enabled. Keeping docker container running..."
+tail -f /dev/null
