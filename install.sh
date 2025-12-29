@@ -231,7 +231,7 @@ log_vars() {
 	_log "debug" "$msg"
 }
 
-get_clr_str() {
+clr() {
 	local msg="$1"
 	local clr="$2"
 	local with_quote="${3-:}"
@@ -345,7 +345,7 @@ backup_item() {
 	timestamp="$(date "+%Y-%m-%d_%H-%M-%S")"
 	dst="${APP["backups"]}/${basename}.${timestamp}.tgz"
 
-	log_info "Create backup: $(get_clr_str "$dst" "${LOG_CLR["path"]}" "true")"
+	log_info "Create backup: $(clr "$dst" "${LOG_CLR["path"]}" "true")"
 	$SUDO tar czvf "$dst" -C "$parent_dir" "$basename"
 }
 
@@ -673,7 +673,7 @@ do_setup_arch() {
 main_() {
 	local session_id
 	session_id="$(get_safe_random_str 4)"
-	log_debug "================ Begin $(get_clr_str "$CURRENT_USER ($session_id)" "${LOG_CLR["highlight"]}") session ================"
+	log_debug "================ Begin $(clr "$CURRENT_USER ($session_id)" "${LOG_CLR["highlight"]}") session ================"
 	log_vars "HOSTNAME" "INSTALL_USER" "CURRENT_USER" "IS_DOCKER" "IS_DEBUG"
 
 	# Download script
@@ -727,7 +727,7 @@ main_() {
 		tail -f /dev/null
 	fi
 
-	log_debug "================ End $(get_clr_str "$CURRENT_USER ($session_id)" "${LOG_CLR["highlight"]}") session ================"
+	log_debug "================ End $(clr "$CURRENT_USER ($session_id)" "${LOG_CLR["highlight"]}") session ================"
 }
 
 # main_
@@ -794,9 +794,9 @@ testlink() {
 		default_items=("${!default_item_map[@]}")
 
 	elif [[ -n "$host_dir" ]]; then
-		local host_items="${pre_host_items[*]}"
+		local host_items=("${pre_host_items[@]}")
 	elif [[ -n "$default_dir" ]]; then
-		local default_items="${pre_default_items[*]}"
+		local default_items=("${pre_default_items[@]}")
 	fi
 
 	for item_type in "union" "host" "default"; do
@@ -837,12 +837,12 @@ testlink() {
 				as_base_item="${base_dir}/${item#"${HOST_PREFIX}"}"
 			fi
 
+			log_vars "item" "actual"
 			if [[ -d "$actual" ]]; then
 				log_debug "Create directory: \"${LOG_CLR["path"]}$as_base_item${CLR["reset"]}\""
 				mkdir "$as_base_item"
-				log_debug "$item_type"
 				if [[ "$item_type" == "union" ]]; then
-					testlink "$as_base_item"
+					testlink "$as_base_item" "$as_host_item" "$as_default_item"
 				elif [[ "$item_type" == "host" ]]; then
 					testlink "$as_base_item" "$as_host_item"
 				elif [[ "$item_type" == "default" ]]; then
