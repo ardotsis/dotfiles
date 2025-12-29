@@ -816,7 +816,7 @@ testlink() {
 			# Get actual item path
 			if [[ "$item_type" == "union" || "$item_type" == "host" ]]; then
 				if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
-					actual_path="${base_dir}/${item#"${HOST_PREFIX}"}"
+					local actual_path="${base_dir}/${item#"${HOST_PREFIX}"}"
 				else
 					local actual_path="$as_host_item"
 				fi
