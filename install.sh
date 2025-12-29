@@ -794,6 +794,7 @@ testlink() {
 		default_items=("${!default_item_map[@]}")
 
 	elif [[ -n "$host_dir" ]]; then
+		# shellcheck disable=SC2034
 		local host_items=("${pre_host_items[@]}")
 	elif [[ -n "$default_dir" ]]; then
 		local default_items=("${pre_default_items[@]}")
@@ -826,15 +827,13 @@ testlink() {
 
 			# Get actual item path (if "union" prefer "host" item)
 			if [[ "$item_type" == "union" || "$item_type" == "host" ]]; then
-				local as_var="as_host_item"
+				local actual="$as_host_item"
 			else
-				local as_var="as_default_item"
+				local actual="$as_default_item"
 			fi
-			local actual="${!as_var}"
 
-			# $item= HOST##.config -> .config
 			if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
-				as_base_item="${base_dir}/${item#"${HOST_PREFIX}"}"
+				actual="${base_dir}/${item#"${HOST_PREFIX}"}"
 			fi
 
 			log_vars "item" "actual"
