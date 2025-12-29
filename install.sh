@@ -764,8 +764,6 @@ testlink() {
 	local default_dir="${3:-}"
 
 	log_debug "Base: ${LOG_CLR["path"]}$base_dir${CLR["reset"]}"
-
-	# shellcheck disable=SC2034
 	local pre_host_items=() pre_default_items=()
 	[[ -z "$host_dir" ]] || get_items "$host_dir" "pre_host_items"
 	[[ -z "$default_dir" ]] || get_items "$default_dir" "pre_default_items"
@@ -780,19 +778,15 @@ testlink() {
 		# Remove host's prefixed items from secondary array
 		local -A default_item_map
 		for item in "${default_items[@]}"; do
-			# shellcheck disable=SC2034
 			default_item_map["$item"]="0"
 		done
-
 		for host_item in "${pre_host_items[@]}"; do
 			if [[ $host_item == "$HOST_PREFIX"* ]]; then
 				unset "default_item_map[""${host_item#"$HOST_PREFIX"}""]"
 				log_debug "Unset $host_item from default items"
 			fi
 		done
-
 		default_items=("${!default_item_map[@]}")
-
 	elif [[ -n "$host_dir" ]]; then
 		# shellcheck disable=SC2034
 		local host_items=("${pre_host_items[@]}")
@@ -805,19 +799,13 @@ testlink() {
 		if [[ "$item_type" == "union" ]]; then
 			local as_var="as_host_item"
 		else
-			# default, host
 			local as_var="as_${item_type}_item"
 		fi
-
 		for item in "${items[@]}"; do
 			[[ -z "$item" ]] && continue
-
 			local as_base_item="${base_dir}/${item}"
-			# shellcheck disable=SC2034
 			local as_host_item="${host_dir}/${item}"
-			# shellcheck disable=SC2034
 			local as_default_item="${default_dir}/${item}"
-
 			# Backup
 			if [[ -e "$as_base_item" ]]; then
 				log_debug "Backup: $as_base_item"
@@ -825,19 +813,19 @@ testlink() {
 				rm -rf "$as_base_item"
 			fi
 
-			# Get actual item path (if "union" prefer "host" item)
+			# Get actual item path
 			if [[ "$item_type" == "union" || "$item_type" == "host" ]]; then
 				if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
-					actual="${base_dir}/${item#"${HOST_PREFIX}"}"
+					actual_path="${base_dir}/${item#"${HOST_PREFIX}"}"
 				else
-					local actual="$as_host_item"
+					local actual_path="$as_host_item"
 				fi
 			else
-				local actual="$as_default_item"
+				local actual_path="$as_default_item"
 			fi
 
-			log_vars "item" "actual"
-			if [[ -d "$actual" ]]; then
+			log_vars "item" "actual_path"
+			if [[ -d "$actual_path" ]]; then
 				log_debug "Create directory: \"${LOG_CLR["path"]}$as_base_item${CLR["reset"]}\""
 				mkdir "$as_base_item"
 				if [[ "$item_type" == "union" ]]; then
@@ -847,8 +835,8 @@ testlink() {
 				elif [[ "$item_type" == "default" ]]; then
 					testlink "$as_base_item" "" "$as_default_item"
 				fi
-			elif [[ -f "$actual" ]]; then
-				log_info "New symlink: \"${LOG_CLR["path"]}$as_base_item${CLR["reset"]}\" -> (${item_type^^}) \"${LOG_CLR["path"]}$actual${CLR["reset"]}\""
+			elif [[ -f "$actual_path" ]]; then
+				log_info "New symlink: \"${LOG_CLR["path"]}$as_base_item${CLR["reset"]}\" -> (${item_type^^}) \"${LOG_CLR["path"]}$actual_path${CLR["reset"]}\""
 				ln -sf "${!as_var}" "$as_base_item"
 			fi
 		done
