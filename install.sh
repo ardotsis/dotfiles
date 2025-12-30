@@ -400,27 +400,6 @@ set_perm_item() {
 	fi
 }
 
-clone_dotfiles_repo() {
-	if ! is_cmd_exist git; then
-		install_package "git"
-	fi
-
-	if [[ "$IS_DEBUG" == "true" ]]; then
-		log_debug "New debug symlink: \"${LOG_CLR["path"]}${DOTFILES_REPO["_dir"]}${CLR["reset"]}\" -> \"${LOG_CLR["path"]}$DEV_REPO_DIR${CLR["reset"]}\""
-		ln -s "$DEV_REPO_DIR" "${DOTFILES_REPO["_dir"]}"
-	else
-		git clone -b "$GIT_REMOTE_BRANCH" "${URL["dotfiles_repo"]}" "${DOTFILES_REPO["_dir"]}"
-	fi
-}
-
-install_listed_packages() {
-	while read -r pkg; do
-		if ! is_cmd_exist "$pkg"; then
-			install_package "$pkg"
-		fi
-	done <"${DOTFILES_REPO["packages"]}"
-}
-
 get_items() {
 	local dir_path="$1"
 	# shellcheck disable=SC2178
@@ -533,12 +512,26 @@ testlink() {
 #                   Installers                   #
 ##################################################
 do_setup_vultr() {
-	log_info "Clone dotfiles repository"
-	clone_dotfiles_repo
+	if ! is_cmd_exist git; then
+		install_package "git"
+	fi
+
+	if [[ "$IS_DEBUG" == "true" ]]; then
+		log_debug "New debug symlink: \"${LOG_CLR["path"]}${DOTFILES_REPO["_dir"]}${CLR["reset"]}\" -> \"${LOG_CLR["path"]}$DEV_REPO_DIR${CLR["reset"]}\""
+		ln -s "$DEV_REPO_DIR" "${DOTFILES_REPO["_dir"]}"
+	else
+		git clone -b "$GIT_REMOTE_BRANCH" "${URL["dotfiles_repo"]}" "${DOTFILES_REPO["_dir"]}"
+	fi
+
 	log_info "Start linking dotfiles"
 	testlink "$HOME_DIR" "${DOTFILES_REPO["host"]}" "${DOTFILES_REPO["common"]}"
+
 	log_info "Install packages"
-	install_listed_packages
+	while read -r pkg; do
+		if ! is_cmd_exist "$pkg"; then
+			install_package "$pkg"
+		fi
+	done <"${DOTFILES_REPO["packages"]}"
 
 	# Uninstall UFW
 	if is_cmd_exist ufw; then
