@@ -105,6 +105,7 @@
     }
   },
   "vscode-neovim.neovimExecutablePaths.win32": "C:/Program Files/Neovim/bin/nvim.exe",
+  "vscode-neovim.neovimInitVimPaths.linux": "~/.config/nvim/init_vscode.lua",
   "vscode-neovim.neovimInitVimPaths.win32": "~/AppData/Local/nvim/init_vscode.lua",
   "window.commandCenter": false,
   "window.menuBarVisibility": "compact",

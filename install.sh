@@ -81,6 +81,7 @@ declare -r IS_DEBUG
 CURRENT_USER="$(whoami)"
 declare -r CURRENT_USER
 
+declare -r SCRIPT_NAME="${BASH_SOURCE[0]+x}"
 declare -r HOME_DIR="/home/$INSTALL_USER"
 declare -r TMP_DIR="/var/tmp"
 declare -r REPO_DIRNAME=".dotfiles"
@@ -420,137 +421,109 @@ install_listed_packages() {
 	done <"${DOTFILES_REPO["packages"]}"
 }
 
-convert_home_path() {
-	local original_path="$1"
-	local to="$2"
+get_items() {
+	local dir_path="$1"
+	# shellcheck disable=SC2178
+	local -n result_arr_name="$2"
 
 	# shellcheck disable=SC2034
-	local home="$HOME_DIR"
-	local common="${DOTFILES_REPO["common"]}"
-	local host="${DOTFILES_REPO["host"]}"
-
-	local from
-	for home_type in "home" "common" "host"; do
-		if [[ "$original_path" == "${!home_type}"* ]]; then
-			from="$home_type"
-		fi
-	done
-
-	# Convert home position
-	printf "%s" "${original_path/#${!from}/${!to}}"
+	mapfile -d $'\0' result_arr_name < \
+		<(find "$dir_path" -mindepth 1 -maxdepth 1 -printf "%f\0")
 }
 
-do_link() {
-	local a_home_dir="${1-$HOME_DIR}"
-	local dir_type="${2:-}"
-	local prefix_base="${3:-}"
-
-	local as_host_dir as_common_dir
-	as_host_dir="$(convert_home_path "$a_home_dir" "host")"
-	as_common_dir="$(convert_home_path "$a_home_dir" "common")"
-	# log_vars "a_home_dir" "as_host_dir" "as_common_dir"j
-
-	map_dir_items() {
-		local dir_path="$1"
-		local -n arr_ref="$2"
-
-		# Do NOT use double quotes with -d options to preserve null character
-		mapfile -d $'\0' "${!arr_ref}" < \
-			<(find "$dir_path" -mindepth 1 -maxdepth 1 -printf "%f\0")
-	}
-
-	log_debug "Processing \"${LOG_CLR["path"]}$a_home_dir${CLR["reset"]}\"..."
-
-	local pre_host_items=() pre_common_items=()
-	if [[ -n "$dir_type" ]]; then
-		local as_dir_var="as_${dir_type}_dir"
-		map_dir_items "${!as_dir_var}" "pre_${dir_type}_items"
-	else
-		map_dir_items "$as_host_dir" "pre_host_items"
-		map_dir_items "$as_common_dir" "pre_common_items"
-
-		# Remove host prefixed items from common items
-		for h_i in "${!pre_host_items[@]}"; do
-			local path="${pre_host_items[$h_i]}"
-			local basename_
-			basename_="$(basename "$path")"
-			if [[ "$basename_" == "$HOST_PREFIX"* ]]; then
-				for c_i in "${!pre_common_items[@]}"; do
-					if [[ "${pre_common_items[$c_i]}" == "${basename_#"${HOST_PREFIX}"}" ]]; then
-						pre_common_items=("${pre_common_items[@]:0:$c_i}" "${pre_common_items[@]:$c_i+1}")
-						break
-					fi
-				done
-			fi
-		done
-	fi
-
-	set_pre_items() {
-		local -n arr_ref="$1"
-		local mode="$2"
-
-		mapfile -d $'\0' "${!arr_ref}" < <(comm "$mode" -z \
-			<(printf "%s\0" "${pre_host_items[@]}" | sort -z) \
-			<(printf "%s\0" "${pre_common_items[@]}" | sort -z))
-	}
+get_mixed_items() {
+	# todo: arr1 arr2
+	local -n arr_name_1="$1"
+	local -n arr_name_2="$2"
+	local mode="$3"
+	# shellcheck disable=SC2178
+	local -n result_arr_name="$4"
 
 	# shellcheck disable=SC2034
-	local union_items=() host_items=() common_items=()
-	set_pre_items "union_items" "-12"
-	set_pre_items "host_items" "-23"
-	set_pre_items "common_items" "-13"
-	log_vars "union_items[@]" "host_items[@]" "common_items[@]"
+	mapfile -d $'\0' result_arr_name < <(comm "$mode" -z \
+		<(printf "%s\0" "${arr_name_1[@]}" | sort -z) \
+		<(printf "%s\0" "${arr_name_2[@]}" | sort -z))
+}
 
-	for item_type in "union" "host" "common"; do
+testlink() {
+	local target_dir="$1"
+	local host_dir="${2:-}" # Preferred
+	local default_dir="${3:-}"
+
+	local all_host_items=() all_default_items=()
+	[[ -z "$host_dir" ]] || get_items "$host_dir" "all_host_items"
+	[[ -z "$default_dir" ]] || get_items "$default_dir" "all_default_items"
+
+	# shellcheck disable=SC2034
+	local union_items=() host_items=() default_items=()
+	if [[ -n "$host_dir" && -n "$default_dir" ]]; then
+		get_mixed_items "all_host_items" "all_default_items" "-12" "union_items"
+		get_mixed_items "all_host_items" "all_default_items" "-23" "host_items"
+		get_mixed_items "all_host_items" "all_default_items" "-13" "default_items"
+
+		# Remove host's prefixed items from secondary array
+		local -A default_item_map
+		local item
+		for item in "${default_items[@]}"; do
+			default_item_map["$item"]="0"
+		done
+
+		local host_item
+		for host_item in "${all_host_items[@]}"; do
+			if [[ $host_item == "$HOST_PREFIX"* ]]; then
+				unset "default_item_map[""${host_item#"$HOST_PREFIX"}""]"
+			fi
+		done
+
+		default_items=("${!default_item_map[@]}")
+	elif [[ -n "$host_dir" ]]; then
+		# shellcheck disable=SC2034
+		local host_items=("${all_host_items[@]}")
+	elif [[ -n "$default_dir" ]]; then
+		local default_items=("${all_default_items[@]}")
+	fi
+
+	local item_type
+	for item_type in "union" "host" "default"; do
 		local -n items="${item_type}_items"
+		if [[ "$item_type" == "union" ]]; then
+			local as_var="as_host_item"
+		else
+			local as_var="as_${item_type}_item"
+		fi
+
+		local item
 		for item in "${items[@]}"; do
 			[[ -z "$item" ]] && continue
+			local as_target_item="${target_dir}/${item}"
+			local as_host_item="${host_dir}/${item}"
+			local as_default_item="${default_dir}/${item}"
 
-			local as_home_item="${a_home_dir}/${item}"
-			# shellcheck disable=SC2034
-			local as_common_item="${as_common_dir}/${item}"
-			# shellcheck disable=SC2034
-			local as_host_item="${as_host_dir}/${item}"
-
-			if [[ -e "$as_home_item" ]]; then
-				log_debug "Backup: $as_home_item"
-				backup_item "$as_home_item"
-				rm -rf "$as_home_item"
+			# Backup home exists item
+			if [[ -e "$as_target_item" ]]; then
+				log_debug "Backup: $as_target_item"
+				backup_item "$as_target_item"
+				rm -rf "$as_target_item"
 			fi
 
-			if [[ "$item_type" == "union" ]]; then
-				local as_var="as_host_item"
-			else
-				local as_var="as_${item_type}_item"
+			local actual_path="${!as_var}"
+			if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
+				actual_path="${target_dir}/${item#"${HOST_PREFIX}"}"
 			fi
-			local actual_item="${!as_var}"
 
-			# Directory
-			if [[ -d "$actual_item" ]]; then
-				if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
-					renamed_as_home_item="${a_home_dir}/${item#"${HOST_PREFIX}"}"
-					log_debug "Create directory: \"${LOG_CLR["path"]}$renamed_as_home_item${CLR["reset"]}\""
-					mkdir "$renamed_as_home_item"
-					do_link "$as_home_item" "$item_type" "$as_home_item"
-				else
-					log_debug "Create directory: \"${LOG_CLR["path"]}$as_home_item${CLR["reset"]}\""
-					mkdir "$as_home_item"
-					if [[ "$item_type" == "union" ]]; then
-						do_link "$as_home_item"
-					else
-						do_link "$as_home_item" "$item_type"
-					fi
+			if [[ -d "$actual_path" ]]; then
+				log_debug "Create directory: \"${LOG_CLR["path"]}$as_target_item${CLR["reset"]}\""
+				mkdir "$as_target_item"
+				if [[ "$item_type" == "union" ]]; then
+					testlink "$as_target_item" "$as_host_item" "$as_default_item"
+				elif [[ "$item_type" == "host" ]]; then
+					testlink "$as_target_item" "$as_host_item"
+				elif [[ "$item_type" == "default" ]]; then
+					testlink "$as_target_item" "" "$as_default_item"
 				fi
-			# File
-			elif [[ -f "$actual_item" ]]; then
-				if [[ "$item_type" == "host" && -n "$prefix_base" ]]; then
-					# TODO cache
-					local basename_="${prefix_base##*/}"
-					local original_dir="${basename_#"${HOST_PREFIX}"}"
-					local as_home_item="${a_home_dir%/*}/${original_dir}"
-				fi
-				log_info "New symlink: \"${LOG_CLR["path"]}$as_home_item${CLR["reset"]}\" -> (${item_type^^}) \"${LOG_CLR["path"]}$actual_item${CLR["reset"]}\""
-				ln -sf "$actual_item" "$as_home_item"
+			elif [[ -f "$actual_path" ]]; then
+				log_info "New symlink: \"${LOG_CLR["path"]}$as_target_item${CLR["reset"]}\" -> (${item_type^^}) \"${LOG_CLR["path"]}$actual_path${CLR["reset"]}\""
+				ln -sf "${!as_var}" "$as_target_item"
 			fi
 		done
 	done
@@ -563,7 +536,7 @@ do_setup_vultr() {
 	log_info "Clone dotfiles repository"
 	clone_dotfiles_repo
 	log_info "Start linking dotfiles"
-	do_link
+	testlink "$HOME_DIR" "${DOTFILES_REPO["host"]}" "${DOTFILES_REPO["common"]}"
 	log_info "Install packages"
 	install_listed_packages
 
@@ -730,120 +703,4 @@ main_() {
 	log_debug "================ End $(clr "$CURRENT_USER ($session_id)" "${LOG_CLR["highlight"]}") session ================"
 }
 
-# main_
-
-# ======================== TEST ========================
-
-get_items() {
-	local dir_path="$1"
-	# shellcheck disable=SC2178
-	local -n result_arr_name="$2"
-
-	# shellcheck disable=SC2034
-	mapfile -d $'\0' result_arr_name < \
-		<(find "$dir_path" -mindepth 1 -maxdepth 1 -printf "%f\0")
-}
-
-get_mixed_items() {
-	# todo: arr1 arr2
-	local -n arr_name_1="$1"
-	local -n arr_name_2="$2"
-	local mode="$3"
-	# shellcheck disable=SC2178
-	local -n result_arr_name="$4"
-
-	# shellcheck disable=SC2034
-	mapfile -d $'\0' result_arr_name < <(comm "$mode" -z \
-		<(printf "%s\0" "${arr_name_1[@]}" | sort -z) \
-		<(printf "%s\0" "${arr_name_2[@]}" | sort -z))
-}
-
-testlink() {
-	local base_dir="$1"
-	local host_dir="${2:-}" # Preferred
-	local default_dir="${3:-}"
-
-	log_debug "Base: ${LOG_CLR["path"]}$base_dir${CLR["reset"]}"
-	local pre_host_items=() pre_default_items=()
-	[[ -z "$host_dir" ]] || get_items "$host_dir" "pre_host_items"
-	[[ -z "$default_dir" ]] || get_items "$default_dir" "pre_default_items"
-
-	# shellcheck disable=SC2034
-	local union_items=() host_items=() default_items=()
-	if [[ -n "$host_dir" && -n "$default_dir" ]]; then
-		get_mixed_items "pre_host_items" "pre_default_items" "-12" "union_items"
-		get_mixed_items "pre_host_items" "pre_default_items" "-23" "host_items"
-		get_mixed_items "pre_host_items" "pre_default_items" "-13" "default_items"
-
-		# Remove host's prefixed items from secondary array
-		local -A default_item_map
-		for item in "${default_items[@]}"; do
-			default_item_map["$item"]="0"
-		done
-		for host_item in "${pre_host_items[@]}"; do
-			if [[ $host_item == "$HOST_PREFIX"* ]]; then
-				unset "default_item_map[""${host_item#"$HOST_PREFIX"}""]"
-				log_debug "Unset $host_item from default items"
-			fi
-		done
-		default_items=("${!default_item_map[@]}")
-	elif [[ -n "$host_dir" ]]; then
-		# shellcheck disable=SC2034
-		local host_items=("${pre_host_items[@]}")
-	elif [[ -n "$default_dir" ]]; then
-		local default_items=("${pre_default_items[@]}")
-	fi
-
-	for item_type in "union" "host" "default"; do
-		local -n items="${item_type}_items"
-		if [[ "$item_type" == "union" ]]; then
-			local as_var="as_host_item"
-		else
-			local as_var="as_${item_type}_item"
-		fi
-		for item in "${items[@]}"; do
-			[[ -z "$item" ]] && continue
-			local as_base_item="${base_dir}/${item}"
-			local as_host_item="${host_dir}/${item}"
-			local as_default_item="${default_dir}/${item}"
-			# Backup
-			if [[ -e "$as_base_item" ]]; then
-				log_debug "Backup: $as_base_item"
-				backup_item "$as_base_item"
-				rm -rf "$as_base_item"
-			fi
-
-			# Get actual item path
-			if [[ "$item_type" == "union" || "$item_type" == "host" ]]; then
-				if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
-					local actual_path="${base_dir}/${item#"${HOST_PREFIX}"}"
-				else
-					local actual_path="$as_host_item"
-				fi
-			else
-				local actual_path="$as_default_item"
-			fi
-
-			log_vars "item" "actual_path"
-			if [[ -d "$actual_path" ]]; then
-				log_debug "Create directory: \"${LOG_CLR["path"]}$as_base_item${CLR["reset"]}\""
-				mkdir "$as_base_item"
-				if [[ "$item_type" == "union" ]]; then
-					testlink "$as_base_item" "$as_host_item" "$as_default_item"
-				elif [[ "$item_type" == "host" ]]; then
-					testlink "$as_base_item" "$as_host_item"
-				elif [[ "$item_type" == "default" ]]; then
-					testlink "$as_base_item" "" "$as_default_item"
-				fi
-			elif [[ -f "$actual_path" ]]; then
-				log_info "New symlink: \"${LOG_CLR["path"]}$as_base_item${CLR["reset"]}\" -> (${item_type^^}) \"${LOG_CLR["path"]}$actual_path${CLR["reset"]}\""
-				ln -sf "${!as_var}" "$as_base_item"
-			fi
-		done
-	done
-}
-
-mkdir /fake-home
-testlink "/fake-home" "${DEV_REPO_DIR}/dotfiles/hosts/vultr" "${DEV_REPO_DIR}/dotfiles/common"
-log_info "Docker mode is enabled. Keeping docker container running..."
-tail -f /dev/null
+main_
