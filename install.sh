@@ -424,7 +424,7 @@ get_mixed_items() {
 		<(printf "%s\0" "${arr_name_2[@]}" | sort -z))
 }
 
-testlink() {
+link() {
 	local target_dir="$1"
 	local host_dir="${2:-}" # Preferred
 	local default_dir="${3:-}"
@@ -439,31 +439,16 @@ testlink() {
 		get_mixed_items "all_host_items" "all_default_items" "-12" "union_items"
 		get_mixed_items "all_host_items" "all_default_items" "-23" "host_items"
 		get_mixed_items "all_host_items" "all_default_items" "-13" "default_items"
-
-		# Remove host's prefixed items from secondary array
-		local -A default_item_map
-		local item
-		for item in "${default_items[@]}"; do
-			default_item_map["$item"]="0"
-		done
-
-		local host_item
-		for host_item in "${all_host_items[@]}"; do
-			if [[ $host_item == "$HOST_PREFIX"* ]]; then
-				unset "default_item_map[""${host_item#"$HOST_PREFIX"}""]"
-			fi
-		done
-
-		default_items=("${!default_item_map[@]}")
 	elif [[ -n "$host_dir" ]]; then
 		# shellcheck disable=SC2034
 		local host_items=("${all_host_items[@]}")
 	elif [[ -n "$default_dir" ]]; then
+		# shellcheck disable=SC2034
 		local default_items=("${all_default_items[@]}")
 	fi
 
-	local item_type
-	for item_type in "union" "host" "default"; do
+	local item_type prefixed_items=()
+	for item_type in "host" "union" "default"; do
 		local -n items="${item_type}_items"
 		if [[ "$item_type" == "union" ]]; then
 			local as_var="as_host_item"
@@ -473,7 +458,12 @@ testlink() {
 
 		local item
 		for item in "${items[@]}"; do
-			[[ -z "$item" ]] && continue
+			# Skip host prefixed item
+			local renamed_item="${item#"${HOST_PREFIX}"}"
+			if [[ "$item_type" == "default" && " ${prefixed_items[*]} " =~ [[:space:]]${renamed_item}[[:space:]] ]]; then
+				continue
+			fi
+
 			local as_target_item="${target_dir}/${item}"
 			local as_host_item="${host_dir}/${item}"
 			local as_default_item="${default_dir}/${item}"
@@ -485,24 +475,27 @@ testlink() {
 				rm -rf "$as_target_item"
 			fi
 
-			local actual_path="${!as_var}"
+			local actual_path="${!as_var}" fixed_target_path=""
 			if [[ "$item_type" == "host" && "$item" == "$HOST_PREFIX"* ]]; then
-				actual_path="${target_dir}/${item#"${HOST_PREFIX}"}"
+				fixed_target_path="${target_dir}/${renamed_item}"
+				prefixed_items+=("${renamed_item}")
 			fi
 
 			if [[ -d "$actual_path" ]]; then
+				[[ -n "$fixed_target_path" ]] && as_target_item="$fixed_target_path"
 				log_debug "Create directory: \"${LOG_CLR["path"]}$as_target_item${CLR["reset"]}\""
 				mkdir "$as_target_item"
 				if [[ "$item_type" == "union" ]]; then
-					testlink "$as_target_item" "$as_host_item" "$as_default_item"
+					link "$as_target_item" "$as_host_item" "$as_default_item"
 				elif [[ "$item_type" == "host" ]]; then
-					testlink "$as_target_item" "$as_host_item"
+					link "$as_target_item" "$as_host_item"
 				elif [[ "$item_type" == "default" ]]; then
-					testlink "$as_target_item" "" "$as_default_item"
+					link "$as_target_item" "" "$as_default_item"
 				fi
 			elif [[ -f "$actual_path" ]]; then
+				[[ -n "$fixed_target_path" ]] && as_target_item="$fixed_target_path"
 				log_info "New symlink: \"${LOG_CLR["path"]}$as_target_item${CLR["reset"]}\" -> (${item_type^^}) \"${LOG_CLR["path"]}$actual_path${CLR["reset"]}\""
-				ln -sf "${!as_var}" "$as_target_item"
+				ln -sf "$actual_path" "$as_target_item"
 			fi
 		done
 	done
@@ -524,7 +517,7 @@ do_setup_vultr() {
 	fi
 
 	log_info "Start linking dotfiles"
-	testlink "$HOME_DIR" "${DOTFILES_REPO["host"]}" "${DOTFILES_REPO["common"]}"
+	link "$HOME_DIR" "${DOTFILES_REPO["host"]}" "${DOTFILES_REPO["common"]}"
 
 	log_info "Install packages"
 	while read -r pkg; do
